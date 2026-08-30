@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.1</title>
+<title>The Lost Helicopter Journal v0.1.2</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -85,13 +85,22 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
   .statusBox{min-height:36px;padding:3px 6px}
   .action{min-height:40px}
 }
+#turn{background:#fff0a6;color:#173247;border-radius:6px;padding:5px;font-size:16px}
+.pawn.current{background:#ffe289;color:#173247;border:2px solid #173247}
+#moveGuide{display:none;flex:0 0 auto;padding:8px;background:#fff0a6;color:#173247;font-size:13px;font-weight:bold;text-align:center}
+#moveGuide.visible{display:block}
+.turnRole{font-size:clamp(30px,8vw,46px);margin:8px 0;color:#173247}
+.turnBadge{font-size:14px;font-weight:bold;letter-spacing:.12em;text-transform:uppercase}
+.guideCopy{font-size:17px;line-height:1.5}
+.modal:focus{outline:none}
+.choice:focus-visible{outline:3px solid #173247;outline-offset:2px}
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.1 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.2 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -104,6 +113,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
     </div>
   </section>
 
+  <div id="moveGuide" role="status" aria-live="polite"></div>
   <main id="mapWrap">
     <div id="toast"></div>
     <div id="map"></div>
@@ -122,7 +132,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 </div>
 
 <div class="overlay" id="overlay">
-  <div class="modal" id="modal"></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" tabindex="-1"></div>
 </div>
 
 <script>
@@ -148,6 +158,7 @@ let eyeMarks=[0,0,0,0];
 let inventory={Tool:0,Armour:0,"Healing Kit":0};
 
 const $=id=>document.getElementById(id);
+let modalDismissible=true, modalReturnFocus=null;
 function toast(msg){
   const t=$("toast"); t.textContent=msg; t.classList.add("show");
   clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove("show"),2200);
@@ -169,12 +180,14 @@ function render(){
     ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Everyone to Centre`
     : `<b>Mission:</b> Find Teleporter Parts<br>${partText}<br><small>Supplies: G${res.Gold} W${res.Wood} S${res.String} F${res.Food} I${res.Ice}</small>`;
 
+  $("moveGuide").textContent=moveMode ? players[active].role+": tap a region marked MOVE. Tap MOVE again to cancel. Cost: 1 action." : "";
+  $("moveGuide").classList.toggle("visible",moveMode);
   const map=$("map"); map.innerHTML="";
   Object.keys(regions).forEach(name=>{
     const d=document.createElement("button");
     d.type="button";
     d.className=`region ${name}`+(name==="Centre"&&!centreUnlocked?" locked":"");
-    const here=players.map((p,i)=>p.loc===name?`<span class="pawn">${p.role[0]}</span>`:"").join("");
+    const here=players.map((p,i)=>p.loc===name?`<span class="pawn ${i===active?"current":""}">${i===active?p.role:p.role[0]}</span>`:"").join("");
     const mons=Object.entries(monsters).map(([k,v])=>v===name?`<span class="monster">${k==="Eyes"?"EYES":k==="Watcher"?"WATCHER":"EVIL"}</span>`:"").join("");
     const reachable=moveMode && regions[players[active].loc].adj.includes(name) && !(name==="Centre"&&!centreUnlocked);
     if(reachable)d.classList.add("reachable");
@@ -201,7 +214,38 @@ function regionTap(name){
   if(name==="Centre") offerPortal();
   render();
 }
+
+function abilityHelp(){
+  return {Explorer:"SCOUT finds 1 Food for the team.",Scavenger:"FIND gains 1 "+(regions[players[active].loc].res||"Food")+" for the team.",Builder:"BUILD salvages 1 Wood for the team.",Medic:"CARE restores 1 of your own Hearts, up to 5."}[players[active].role];
+}
+function showTurn(){
+  if(gameOver)return;
+  const p=players[active];
+  showModal('<div class="turnBadge">Pass the device · Round '+round+'</div><h2 class="turnRole">'+p.role+"'s turn!</h2>"+'<p class="guideCopy">You are in <b>'+p.loc+'</b> with <b>'+p.hp+' Hearts</b>.<br>You have <b>3 actions</b>.</p><p>'+abilityHelp()+'</p><p>'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'Work together: find all 3 Teleporter parts and escape.')+'</p><button class="choice" id="startTurn">I AM THE '+p.role.toUpperCase()+' — START TURN</button>',false);
+  $("startTurn").addEventListener("click",closeModal);
+}
 function handleAction(a){
+  if(gameOver || $("overlay").classList.contains("open"))return;
+  if(a==="journal" || (a==="move"&&moveMode)){performAction(a);return;}
+  if(a!=="end"&&(actions<=0||players[active].ko))return;
+  const p=players[active], resource=regions[p.loc].res;
+  const details={
+    move:["How to move","You are in <b>"+p.loc+"</b>. Tap CHOOSE DESTINATION, then tap a region marked <b>MOVE</b>. You can only travel to a connected region. The Centre stays locked until all 3 parts are found.","CHOOSE DESTINATION","Costs 1 action only when you move."],
+    explore:["Explore "+p.loc,"Discover a surprise: supplies, a friend, a Teleporter part — or a monster! Tap RESOLVE on the discovery card to see what happens.","EXPLORE HERE","Costs 1 action."],
+    gather:["Gather supplies",resource?"In <b>"+p.loc+"</b>, gather <b>"+resource+"</b> for the team. A Tool adds 1 extra resource and is used up. The Scavenger may find an extra resource.":"There are no supplies to gather at the Centre. Move to another region first.","GATHER "+(resource||"SUPPLIES"),resource?"Costs 1 action.":"No action will be spent."],
+    craft:["Make something useful","Choose a recipe on the next screen. It shows the supplies needed and what the item does. Supplies belong to the whole team.","SEE RECIPES","Costs 1 action only when you successfully craft."],
+    ability:[p.role+"'s ability",abilityHelp(),"USE ABILITY","Costs 1 action."],
+    help:["Help a teammate","Stand in the same region as a hurt teammate. Help restores 1 Heart, or rescues a knocked-out teammate with 2 Hearts. If several need help, the first in player order is helped.","HELP HERE","Costs 1 action only if someone here needs help."],
+    end:["Ready to pass the device?",actions>0?"You still have <b>"+actions+" action"+(actions===1?"":"s")+"</b>. Ending now leaves them unused.":"Your actions are finished. Let the next survivor take their turn.","END MY TURN","After everyone has a turn, the island and monsters act."]
+  };
+  const info=details[a]; if(!info)return;
+  showModal('<h2>'+info[0]+'</h2><p class="guideCopy">'+info[1]+'</p><p><b>'+info[3]+'</b></p><button class="choice" id="guideGo">'+info[2]+'</button><button class="choice alt" id="guideCancel">BACK TO ISLAND</button>');
+  $("guideCancel").addEventListener("click",closeModal);
+  $("guideGo").addEventListener("click",()=>{closeModal();performAction(a);});
+}
+
+function performAction(a){
+  if(gameOver || $("overlay").classList.contains("open"))return;
   if(a==="journal"){showJournal();return;}
   if(a==="end"){endTurn();return;}
   if(players[active].ko){toast("This survivor is Knocked Out and needs Help.");return;}
@@ -236,7 +280,7 @@ function doExplore(){
   }
   const [name,effect]=exploration[pick];
   discoveries.add(name);
-  showModal(`<h2>Exploration</h2><p><b>${name}</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>`);
+  showModal(`<h2>Exploration</h2><p><b>${name}</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>`,false);
   $("resolveExplore").addEventListener("click",()=>{closeModal();effect();render();});
   render();
 }
@@ -357,7 +401,13 @@ function endTurn(){
       }
     }
   }
-  actions=3;render();
+  if(gameOver){active=Math.min(active,players.length-1);render();return;}
+  if(players[active].ko){
+    const next=players.findIndex(p=>!p.ko);
+    if(next<0){lose("The whole team was Knocked Out.");return;}
+    active=next;
+  }
+  actions=3;render();showTurn();
 }
 function showJournal(){
   const friendText=Object.entries(recruited).filter(x=>x[1]).map(x=>x[0]).join(", ")||"None yet";
@@ -367,15 +417,38 @@ function showJournal(){
     <button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
   $("closeJournal").addEventListener("click",closeModal);
 }
-function showModal(html){$("modal").innerHTML=html;$("overlay").classList.add("open");}
-function closeModal(){$("overlay").classList.remove("open");}
+
+function showModal(html,dismissible=true){
+  modalReturnFocus=document.activeElement;modalDismissible=dismissible;
+  $("modal").innerHTML=html;
+  const heading=$("modal").querySelector("h2");
+  if(heading){heading.id="modalTitle";$("modal").setAttribute("aria-labelledby","modalTitle");}
+  else $("modal").removeAttribute("aria-labelledby");
+  $("overlay").classList.add("open");$("game").inert=true;$("modal").focus();
+}
+function closeModal(){
+  $("overlay").classList.remove("open");$("game").inert=false;
+  if(modalReturnFocus&&modalReturnFocus.isConnected)modalReturnFocus.focus();
+}
+document.addEventListener("keydown",e=>{
+  if(!$("overlay").classList.contains("open"))return;
+  if(e.key==="Escape"&&modalDismissible){e.preventDefault();closeModal();}
+  if(e.key==="Tab"){
+    const buttons=[...$("modal").querySelectorAll("button:not(:disabled)")];
+    if(!buttons.length){e.preventDefault();return;}
+    const first=buttons[0],last=buttons[buttons.length-1];
+    if(e.shiftKey&&(document.activeElement===first||document.activeElement===$("modal"))){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&(document.activeElement===last||document.activeElement===$("modal"))){e.preventDefault();first.focus();}
+  }
+});
 function win(){gameOver=true;showModal(`<h2>YOU ESCAPED!</h2><p>Everyone reached the Teleporter together.</p><p><b>The Journal remembers your adventure.</b></p><button class="choice" id="restart">PLAY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
 function lose(reason){gameOver=true;showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
 
 document.querySelectorAll(".action").forEach(btn=>btn.addEventListener("click",()=>handleAction(btn.dataset.action)));
-$("overlay").addEventListener("click",e=>{if(e.target===$("overlay"))closeModal();});
+$("overlay").addEventListener("click",e=>{if(e.target===$("overlay")&&modalDismissible)closeModal();});
 toast("Tap MOVE, then a connected region. The map stays on screen while you play.");
 render();
+showTurn();
 </script>
 </body>
 </html>
