@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.7</title>
+<title>The Lost Helicopter Journal v0.1.8</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -201,13 +201,31 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 @media(prefers-reduced-motion:reduce){.scenery *,.kittyPortrait,.discoveryArt{animation:none!important}.cloud,.rewardFlight,.spark{display:none}}
 @media(max-height:550px){.kittyPortrait{width:85px;height:85px}}
 
+
+/* Turn handoff stays usable while the character animation plays. */
+.turnArrival{position:relative;margin:0 auto 8px;max-width:310px;overflow:hidden;border-radius:18px;background:linear-gradient(#d8eee9,#f3e7bc);border-bottom:4px solid #d0b77a}
+.turnArrival .heroPortrait{height:120px;width:120px;margin:4px auto;animation:walkIntoTurn .9s ease-out both}
+.turnArrival::after{content:"·  ·  ·  ·";position:absolute;bottom:3px;left:20%;right:20%;color:#b59662;font-size:22px;letter-spacing:12px;pointer-events:none}
+@keyframes walkIntoTurn{0%{transform:translateX(-140px) rotate(-8deg);opacity:0}30%{transform:translateX(-80px) translateY(-8px) rotate(5deg);opacity:1}55%{transform:translateX(-40px) rotate(-5deg)}80%{transform:translateX(-10px) translateY(-7px) rotate(3deg)}100%{transform:none;opacity:1}}
+.turnOrder{display:flex;justify-content:center;gap:6px;margin:8px 0}
+.turnOrder span{padding:5px 6px;border-radius:9px;background:#e5d9bb;font-size:11px}
+.turnOrder .now{background:var(--turn-colour,#2d6e5c);color:white;font-weight:bold}
+.turnStart{position:sticky;bottom:-14px;background:var(--paper2);padding:8px 0 0;z-index:2}
+.turnStart .choice{min-height:48px;margin-bottom:0}
+.turnInstructions{font-size:14px;line-height:1.45}
+.mapPawn.active .pawnArt{animation:activeStep 1.25s ease-in-out 3}
+@keyframes activeStep{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-3px) rotate(-5deg)}75%{transform:translateY(-3px) rotate(5deg)}}
+.reduceMotion .turnArrival .heroPortrait,.reduceMotion .mapPawn.active .pawnArt{animation:none!important}
+@media(prefers-reduced-motion:reduce){.turnArrival .heroPortrait,.mapPawn.active .pawnArt{animation:none!important}}
+@media(max-height:650px){.turnArrival .heroPortrait{height:75px;width:75px}.turnRole{font-size:28px}.turnOrder{margin:5px 0}.turnInstructions{font-size:12px}.turnStart{bottom:-14px}.turnArrival{margin-bottom:4px}}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.7 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.8 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -481,6 +499,7 @@ function allParts(){return parts.Core&&parts.Crystal&&parts.Ring}
 
 function render(){
   queueSave();
+  queueTurnAdvance();
   if(allParts()&&!centreUnlocked){centreUnlocked=true;discoveries.add("Centre Unlocked");toast("All Teleporter Parts found! The Centre is unlocked.");}
   $("turn").innerHTML=`Round ${round} · ${players[active].role} · ${actions} action${actions===1?"":"s"}`;
   $("teamline").textContent="♥ "+players[active].hp+"/5 · "+players[active].loc+" · Tap a player below for their card";
@@ -542,12 +561,25 @@ function showIntro(page=0,replay=false){
   $("introSkip").addEventListener("click",finish);
 }
 
-function showTurn(){
-  if(gameOver)return;
-  const p=players[active];
-  showModal(portrait(p.role,'heroPortrait')+'<div class="turnBadge">Pass the device · Round '+round+'</div><h2 class="turnRole">'+p.role+"'s turn!</h2>"+'<p class="guideCopy">You are in <b>'+p.loc+'</b> with <b>'+p.hp+' Hearts</b>.<br>You have <b>3 actions</b>.</p><p>'+abilityHelp()+'</p><p>'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'Work together: find all 3 Teleporter parts and escape.')+'</p><button class="choice" id="startTurn">I AM THE '+p.role.toUpperCase()+' — START TURN</button>',false);
-  $("startTurn").addEventListener("click",closeModal);
+
+let turnAdvanceQueued=false;
+function queueTurnAdvance(){
+ if(turnAdvanceQueued)return;
+ turnAdvanceQueued=true;
+ queueMicrotask(()=>{
+  turnAdvanceQueued=false;
+  if(!saveEnabled||gameOver||actions>0||travelBusy||pendingExplore!==null||pendingCraft||explorerSteps>0||$("overlay").classList.contains("open"))return;
+  endTurn();
+ });
 }
+function showTurn(){
+ if(gameOver)return;
+ const p=players[active];
+ showModal('<div class="turnArrival">'+portrait(p.role,'heroPortrait')+'</div><div class="turnBadge">Pass the device · Round '+round+'</div><h2 class="turnRole">'+p.role+"'s turn!</h2>"+'<div class="turnOrder">'+players.map((player,i)=>'<span class="'+(i===active?'now':'')+'">'+player.role+'</span>').join('')+'</div><p class="guideCopy"><b>'+p.hp+' Hearts · '+p.loc+'</b><br>You have <b>'+actions+' actions</b>.</p><p class="turnInstructions">'+abilityHelp()+'</p><p class="turnInstructions">'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'After your 3 actions, play passes to the next survivor automatically.')+'</p><div class="turnStart"><button class="choice" id="startTurn">START '+p.role.toUpperCase()+"'S TURN"+'</button></div>',false);
+ $("modal").style.setProperty("--turn-colour",playerColours[active]);
+ $("startTurn").addEventListener("click",()=>{closeModal();render();});
+}
+
 function handleAction(a){
   if(travelBusy)return;
   if(gameOver || $("overlay").classList.contains("open"))return;
@@ -787,9 +819,10 @@ function showModal(html,dismissible=true){
   const heading=$("modal").querySelector("h2");
   if(heading){heading.id="modalTitle";$("modal").setAttribute("aria-labelledby","modalTitle");}
   else $("modal").removeAttribute("aria-labelledby");
-  $("overlay").classList.add("open");$("game").inert=true;$("modal").focus();
+  $("overlay").classList.add("open");$("game").inert=true;$("modal").scrollTop=0;$("modal").focus({preventScroll:true});
 }
 function closeModal(){
+  queueTurnAdvance();
   if($("closeCraft"))pendingCraft=false;
   queueSave();
   $("overlay").classList.remove("open");$("game").inert=false;
