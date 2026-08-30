@@ -1,6 +1,6 @@
 # The Lost Helicopter Journal
 
-Cooperative island adventure — digital prototype v0.1.2.
+Cooperative island adventure — digital prototype v0.1.3.
 
 ## Play
 
@@ -23,3 +23,9 @@ Cooperative island adventure — digital prototype v0.1.2.
 Adds action instructions, explicit player handoffs (including the first turn), a highlighted active-player label and pawn, and persistent movement guidance. Pop-ups support keyboard focus and prevent actions behind them. Exploration cards must be resolved before continuing. Turn selection skips a player knocked out during the island phase.
 
 Based on the original `lost_helicopter_v011.html` prototype. Existing action costs, recipes, abilities and win conditions are retained.
+
+## v0.1.3
+
+Friends now introduce themselves with a description card and belong to the player who discovers them. Kitty (🐱), Fred (🎨), and Bla Bla (💜) appear beneath their owner in the player row. Repeat discoveries keep the original owner and do not add duplicates.
+
+Tap a player name to view health, location, status, actions, ability, eye marks, current friends, and shared items and supplies. Friends have no separate health or usable abilities yet; inventory remains shared. The phone layout keeps the map and controls onscreen.
