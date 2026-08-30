@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.4</title>
+<title>The Lost Helicopter Journal v0.1.5</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -111,13 +111,48 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 .friendRow p{margin:4px 0;line-height:1.4}
 #turn{width:100%;text-align:left;border:0;font:inherit;font-weight:bold;cursor:pointer}
 
+
+/* Illustrated board. Gameplay controls stay outside the artwork. */
+#mapWrap{display:grid;place-items:center;background:radial-gradient(ellipse at center,#20a6ba,#07546b);padding:5px;isolation:isolate}
+#map{position:relative;display:block;flex:none;gap:0;overflow:visible;border-radius:16px;box-shadow:0 5px 22px #002b4480}
+.islandArt{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:16px;pointer-events:none}
+#map .region{position:absolute;transform:translate(-50%,-50%);width:var(--label-width,88px);height:auto;min-height:40px;padding:4px 3px;border:2px solid #664b2d;border-radius:9px;background:#fff3d6eb;color:#173247;box-shadow:0 3px 7px #17324766;overflow:visible;z-index:2;cursor:pointer}
+#map .region h2{font-size:clamp(11px,2.8vw,16px);line-height:1.1}
+#map .region .res{font-size:clamp(9px,2vw,11px);margin-top:2px}
+#map .region.selected{outline:3px solid #ffdf63;outline-offset:2px}
+#map .region.reachable{background:#e4ffe9;border:3px dashed #146d4b;box-shadow:0 0 0 3px #ffffffa0}
+#map .region.reachable::after{right:-4px;top:-14px;padding:2px 4px;background:#17684c;color:white;font-size:10px}
+#map .region.locked{opacity:1;filter:none;background:#cbd1d6eb;color:#324351}
+.mapPawn{position:absolute;transform:translate(-50%,-50%);width:var(--pawn-size,38px);height:var(--pawn-size,38px);padding:0;border:2px solid var(--player-colour);border-radius:50%;background:#fff8de;box-shadow:0 3px 5px #0007;z-index:5;cursor:pointer;transition:left .55s ease-in-out,top .55s ease-in-out;overflow:visible}
+.mapPawn img{width:100%;height:100%;object-fit:contain;display:block}
+.mapPawn .pawnLetter{position:absolute;right:-3px;bottom:-4px;font-size:10px;font-weight:bold;padding:1px 4px;border-radius:9px;background:var(--player-colour);color:#fff;border:1px solid white}
+.mapPawn.active{outline:3px solid #fff;outline-offset:1px;z-index:6}
+.mapPawn.ko{filter:grayscale(1);opacity:.7}
+.monsterPin{position:absolute;transform:translate(-50%,-50%);z-index:7;font-size:10px;font-weight:bold;background:#7b2024;color:white;border:2px solid #fff;border-radius:7px;padding:3px 5px;pointer-events:none;max-width:105px;text-align:center}
+.rosterPortrait{float:left;width:30px;height:39px;object-fit:contain;pointer-events:none}
+.playerTile{border-bottom:4px solid var(--player-colour,#a7bec2)}
+.heroPortrait{height:145px;width:145px;object-fit:contain;display:block;margin:0 auto 5px;filter:drop-shadow(0 5px 3px #76502c33)}
+#motionToggle{position:absolute;right:7px;bottom:5px;z-index:9;border:1px solid #f1d493;border-radius:20px;background:#073b4fe8;color:white;padding:6px 9px;min-height:32px;font:inherit;font-size:11px;cursor:pointer}
+#mapFallback{position:absolute;top:8px;left:10%;right:10%;padding:5px;background:#fff3d6;z-index:8;font-size:11px;text-align:center}
+.floatEffect{position:absolute;z-index:10;pointer-events:none;background:#fff4c9;color:#173247;padding:5px 8px;border-radius:20px;border:2px solid #b78a30;font-weight:bold;font-size:12px;animation:floatGain 1s ease-out both;white-space:nowrap}
+@keyframes floatGain{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-45px)}}
+.overlay.open .modal{animation:cardAppear .2s ease-out}
+@keyframes cardAppear{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+.portalHalo{position:absolute;left:49%;top:49%;width:16%;aspect-ratio:1;transform:translate(-50%,-50%);border:4px solid #85f8ed;box-shadow:0 0 14px #91fff3,inset 0 0 12px #69f3e0;border-radius:50%;z-index:1;display:none}
+.portalActive .portalHalo{display:block;animation:portalGlow 2s ease-in-out infinite alternate}
+@keyframes portalGlow{to{box-shadow:0 0 25px #c5fff9,inset 0 0 22px #69f3e0}}
+.reduceMotion .mapPawn{transition:none}
+.reduceMotion .modal,.reduceMotion .floatEffect,.reduceMotion .portalHalo{animation:none!important}
+@media(prefers-reduced-motion:reduce){.mapPawn{transition:none}.modal,.floatEffect,.portalHalo{animation:none!important}}
+@media(max-height:620px){.heroPortrait{height:82px;width:82px}.rosterPortrait{width:21px;height:30px}#roster .playerTile{padding:2px}.playerFriends{min-height:17px;font-size:16px}#motionToggle{font-size:10px;padding:3px 6px}}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.4 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.5 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -134,7 +169,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
   <div id="moveGuide" role="status" aria-live="polite"></div>
   <main id="mapWrap">
     <div id="toast"></div>
-    <div id="map"></div>
+    <div id="map"></div><button type="button" id="motionToggle" aria-label="Reduce animations" aria-pressed="false">Motion: on</button>
   </main>
 
   <nav class="actions" aria-label="Game actions">
@@ -197,21 +232,87 @@ function friendIcons(i){
   return names.length?names.map(name=>'<span role="img" aria-label="'+name+'" title="'+name+'">'+friendInfo[name].icon+'</span>').join(' '):'<span class="noFriends">No friends yet</span>';
 }
 function renderRoster(){
-  $("roster").innerHTML=players.map((p,i)=>'<button type="button" class="playerTile '+(i===active?'current':'')+'" data-player="'+i+'" aria-label="Open '+p.role+' player card"><span class="playerName">'+(i===active?'▶ ':'')+p.role+'</span><span class="playerHealth">'+(p.ko?'Knocked out':'♥ '+p.hp+'/5')+'</span><span class="playerFriends">'+friendIcons(i)+'</span></button>').join('');
-  $("roster").querySelectorAll("[data-player]").forEach(button=>button.addEventListener("click",()=>showPlayer(Number(button.dataset.player))));
+  $("roster").innerHTML=players.map((p,i)=>'<button type="button" class="playerTile '+(i===active?'current':'')+'" data-player="'+i+'" aria-label="Open '+p.role+' player card">'+portrait(p.role,'rosterPortrait')+'<span class="playerName">'+(i===active?'▶ ':'')+p.role+'</span><span class="playerHealth">'+(p.ko?'Knocked out':'♥ '+p.hp+'/5')+'</span><span class="playerFriends">'+friendIcons(i)+'</span></button>').join('');
+  $("roster").querySelectorAll("[data-player]").forEach(button=>{button.style.setProperty("--player-colour",playerColours[Number(button.dataset.player)]);button.addEventListener("click",()=>showPlayer(Number(button.dataset.player)));});
 }
 function showPlayer(i){
   const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
-  showModal('<div class="cardIcon" aria-hidden="true">'+info.icon+'</div><h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendInfo[name].icon+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendInfo[name].icon+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
   $("closePlayer").addEventListener("click",closeModal);
+}
+
+
+const artPositions={Desert:[27,23],Ice:[72,22],Cave:[80,51],Forest:[51,73],Beach:[20,58],Centre:[49,46]};
+const playerColours=["#b78113","#367744","#b65324","#157c86"];
+let reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let travelBusy=false,travelTimer;
+function portrait(role,cls){return '<img class="'+cls+'" src="assets/'+role.toLowerCase()+'-v015.png" alt="" decoding="async">';}
+function fitBoard(){
+  const wrap=$("mapWrap"),board=$("map"),size=Math.max(1,Math.min(wrap.clientWidth-10,wrap.clientHeight-10));
+  board.style.width=size+"px";board.style.height=size+"px";
+  board.style.setProperty("--pawn-size",Math.max(25,Math.min(46,size*.105))+"px");
+  board.style.setProperty("--label-width",Math.max(65,Math.min(108,size*.23))+"px");
+}
+function renderBoard(){
+  const board=$("map");
+  if(!board.dataset.ready){
+    board.dataset.ready="true";
+    board.innerHTML='<img class="islandArt" src="assets/island-v015.png" alt="Illustrated island: desert northwest, ice northeast, cave east, forest south, beach southwest, and the mysterious centre."><div class="portalHalo" aria-hidden="true"></div><div id="mapFallback" hidden>Artwork could not load. Region buttons still work.</div>';
+    board.querySelector(".islandArt").addEventListener("error",()=>{$("mapFallback").hidden=false;});
+    Object.keys(regions).forEach(name=>{
+      const b=document.createElement("button");b.type="button";b.id="region"+name;b.className="region "+name;
+      b.style.left=artPositions[name][0]+"%";b.style.top=artPositions[name][1]+"%";
+      b.addEventListener("click",()=>regionTap(name));board.appendChild(b);
+    });
+    players.forEach((p,i)=>{
+      const pawn=document.createElement("button");pawn.type="button";pawn.id="mapPlayer"+i;pawn.className="mapPawn";
+      pawn.style.setProperty("--player-colour",playerColours[i]);
+      pawn.innerHTML=portrait(p.role,"pawnArt")+'<span class="pawnLetter">'+p.role[0]+'</span>';
+      pawn.addEventListener("click",()=>{if(!travelBusy)showPlayer(i);});board.appendChild(pawn);
+    });
+    Object.keys(monsters).forEach(key=>{const pin=document.createElement("div");pin.id="monster"+key;pin.className="monsterPin";board.appendChild(pin);});
+  }
+  Object.keys(regions).forEach(name=>{
+    const button=$("region"+name),locked=name==="Centre"&&!centreUnlocked;
+    const reachable=moveMode&&regions[players[active].loc].adj.includes(name)&&!locked;
+    button.classList.toggle("locked",locked);button.classList.toggle("reachable",reachable);button.classList.toggle("selected",players[active].loc===name);
+    button.innerHTML='<h2>'+name+'</h2><div class="res">'+(locked?'🔒 Find 3 parts':regions[name].res?'Gather: '+regions[name].res:teleporter?'Portal active':'Teleporter site')+'</div>';
+    button.setAttribute("aria-label",name+(locked?" locked":regions[name].res?" Gather: "+regions[name].res:" Teleporter Site")+(reachable?" MOVE":""));
+  });
+  players.forEach((p,i)=>{
+    const pawn=$("mapPlayer"+i),pos=artPositions[p.loc];
+    pawn.style.left=(pos[0]+(i%2===0?-6:6))+"%";pawn.style.top=(pos[1]+(i<2?10:21))+"%";
+    pawn.classList.toggle("active",i===active);pawn.classList.toggle("ko",p.ko);
+    pawn.setAttribute("aria-label",p.role+" in "+p.loc+" — open player card");pawn.title=p.role+" · "+p.loc+" · ♥"+p.hp;
+  });
+  Object.entries(monsters).forEach(([key,loc],i)=>{
+    const pin=$("monster"+key);pin.hidden=!loc;
+    if(loc){pin.style.left=artPositions[loc][0]+"%";pin.style.top=(artPositions[loc][1]-10-i*3)+"%";pin.textContent=key==="Eyes"?"👁 Wall of Eyes":key==="Watcher"?"👁 Watcher":"🐈 Evil Kitty";}
+  });
+  board.classList.toggle("portalActive",teleporter);board.setAttribute("aria-busy",String(travelBusy));
+  document.documentElement.classList.toggle("reduceMotion",reduceMotion);
+  $("motionToggle").textContent=reduceMotion?"Motion: reduced":"Motion: on";
+  $("motionToggle").setAttribute("aria-pressed",String(reduceMotion));
+  fitBoard();
+}
+function startTravel(){
+  if(reduceMotion)return;
+  travelBusy=true;clearTimeout(travelTimer);
+  travelTimer=setTimeout(()=>{travelBusy=false;render();},580);
+}
+function visualGain(text,i){
+  if(reduceMotion||!$("map").dataset.ready)return;
+  const el=document.createElement("div"),pos=artPositions[players[i].loc];el.className="floatEffect";
+  el.textContent=text;el.style.left=pos[0]+"%";el.style.top=(pos[1]+7)+"%";
+  $("map").appendChild(el);setTimeout(()=>el.remove(),1050);
 }
 
 function toast(msg){
   const t=$("toast"); t.textContent=msg; t.classList.add("show");
   clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove("show"),2200);
 }
-function gain(k,n){res[k]+=n; toast(`Team gained ${n} ${k}.`);}
-function heal(i,n){players[i].hp=Math.min(5,players[i].hp+n); if(players[i].hp>0) players[i].ko=false; toast(`${players[i].role} healed ${n}.`);}
+function gain(k,n){res[k]+=n;visualGain("+"+n+" "+k,active); toast(`Team gained ${n} ${k}.`);}
+function heal(i,n){visualGain("♥ +"+Math.min(n,5-players[i].hp),i);players[i].hp=Math.min(5,players[i].hp+n); if(players[i].hp>0) players[i].ko=false; toast(`${players[i].role} healed ${n}.`);}
 function spendAction(){
   if(gameOver || actions<=0){toast("No actions left. End the turn.");return false;}
   actions--; return true;
@@ -230,20 +331,7 @@ function render(){
 
   $("moveGuide").textContent=moveMode ? players[active].role+(explorerSteps>0?": "+explorerSteps+" connected move"+(explorerSteps===1?"":"s")+" left. "+(explorerSteps===1?"No extra action cost.":"Costs 1 action for both."):" : tap a region marked MOVE. Cost: 1 action.")+" Tap CANCEL MOVE to stop." : "";
   $("moveGuide").classList.toggle("visible",moveMode);
-  const map=$("map"); map.innerHTML="";
-  Object.keys(regions).forEach(name=>{
-    const d=document.createElement("button");
-    d.type="button";
-    d.className=`region ${name}`+(name==="Centre"&&!centreUnlocked?" locked":"");
-    const here=players.map((p,i)=>p.loc===name?`<span class="pawn ${i===active?"current":""}">${i===active?p.role:p.role[0]}</span>`:"").join("");
-    const mons=Object.entries(monsters).map(([k,v])=>v===name?`<span class="monster">${k==="Eyes"?"EYES":k==="Watcher"?"WATCHER":"EVIL"}</span>`:"").join("");
-    const reachable=moveMode && regions[players[active].loc].adj.includes(name) && !(name==="Centre"&&!centreUnlocked);
-    if(reachable)d.classList.add("reachable");
-    if(players[active].loc===name)d.classList.add("selected");
-    d.innerHTML=`<h2>${name}</h2><div class="res">${regions[name].res?`Gather: ${regions[name].res}`:"Teleporter Site"}</div><div class="occupants">${here}${mons}</div>`;
-    d.addEventListener("click",()=>regionTap(name));
-    map.appendChild(d);
-  });
+  renderBoard();
 
   document.querySelectorAll(".action").forEach(btn=>{
     const a=btn.dataset.action;
@@ -256,10 +344,12 @@ function render(){
       btn.textContent=moveMode?"CANCEL MOVE":"MOVE";
       if(moveMode&&!gameOver&&!players[active].ko)btn.disabled=false;
     }
+    if(travelBusy)btn.disabled=true;
     btn.classList.toggle("active",a==="move"&&moveMode);
   });
 }
 function regionTap(name){
+  if(travelBusy)return;
   if(gameOver||players[active].ko)return;
   if(!moveMode){toast("Tap MOVE or your Explorer ability first, then choose a connected region.");return;}
   const p=players[active];
@@ -267,7 +357,7 @@ function regionTap(name){
   if(!regions[p.loc].adj.includes(name)){toast(name+" is not connected to "+p.loc+".");return;}
   if(explorerSteps===2){if(!spendAbility())return;}
   else if(explorerSteps===0){if(!spendAction())return;}
-  p.loc=name;discoveries.add(name);
+  p.loc=name;discoveries.add(name);startTravel();
   if(explorerSteps>0)explorerSteps--;
   moveMode=explorerSteps>0;
   toast(p.role+" moved to "+name+(moveMode?". Choose one more connected region, or tap CANCEL MOVE.":"."));
@@ -278,10 +368,11 @@ function abilityHelp(){return roleInfo[players[active].role].ability;}
 function showTurn(){
   if(gameOver)return;
   const p=players[active];
-  showModal('<div class="turnBadge">Pass the device · Round '+round+'</div><h2 class="turnRole">'+p.role+"'s turn!</h2>"+'<p class="guideCopy">You are in <b>'+p.loc+'</b> with <b>'+p.hp+' Hearts</b>.<br>You have <b>3 actions</b>.</p><p>'+abilityHelp()+'</p><p>'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'Work together: find all 3 Teleporter parts and escape.')+'</p><button class="choice" id="startTurn">I AM THE '+p.role.toUpperCase()+' — START TURN</button>',false);
+  showModal(portrait(p.role,'heroPortrait')+'<div class="turnBadge">Pass the device · Round '+round+'</div><h2 class="turnRole">'+p.role+"'s turn!</h2>"+'<p class="guideCopy">You are in <b>'+p.loc+'</b> with <b>'+p.hp+' Hearts</b>.<br>You have <b>3 actions</b>.</p><p>'+abilityHelp()+'</p><p>'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'Work together: find all 3 Teleporter parts and escape.')+'</p><button class="choice" id="startTurn">I AM THE '+p.role.toUpperCase()+' — START TURN</button>',false);
   $("startTurn").addEventListener("click",closeModal);
 }
 function handleAction(a){
+  if(travelBusy)return;
   if(gameOver || $("overlay").classList.contains("open"))return;
   if(a==="journal" || (a==="move"&&moveMode)){performAction(a);return;}
   if(a!=="end"&&(actions<=0||players[active].ko))return;
@@ -541,6 +632,8 @@ $("turn").addEventListener("click",()=>showPlayer(active));
 document.querySelectorAll(".action").forEach(btn=>btn.addEventListener("click",()=>handleAction(btn.dataset.action)));
 $("overlay").addEventListener("click",e=>{if(e.target===$("overlay")&&modalDismissible)closeModal();});
 toast("Tap MOVE, then a connected region. The map stays on screen while you play.");
+new ResizeObserver(fitBoard).observe($("mapWrap"));
+$("motionToggle").addEventListener("click",()=>{reduceMotion=!reduceMotion;clearTimeout(travelTimer);travelBusy=false;render();});
 render();
 showTurn();
 </script>
