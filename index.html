@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.6</title>
+<title>The Lost Helicopter Journal v0.1.7</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -175,13 +175,39 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 @media(max-width:600px){.introScene{grid-template-columns:1fr}.introArt{height:25dvh;min-height:130px;object-position:50% 60%}.introCopy{padding:16px}.introCopy p{font-size:15px;margin:10px 0}.introCrew img{height:60px}}
 @media(orientation:landscape) and (max-height:550px){.introScene{grid-template-columns:35% 65%}.introArt{height:100%;min-height:280px}.introCopy{padding:12px 20px}.introCopy p{font-size:14px;margin:7px 0}.introCopy h2{font-size:25px}.introCrew img{height:50px}.introCopy .choice{padding:8px;margin:5px 0}}
 
+
+/* Lightweight scenery and action feedback. Effects never intercept touches. */
+.scenery{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.cloud{position:absolute;top:5%;left:-25%;width:28%;height:9%;border-radius:50%;background:#fff8;filter:blur(6px);animation:cloudDrift 36s linear infinite}
+.cloud.second{top:83%;animation-delay:-18s;animation-duration:48s;opacity:.5}
+.wave{position:absolute;left:2%;top:77%;width:18%;height:5%;border-top:2px solid #dfffffb0;border-radius:50%;animation:waveWash 5s ease-in-out infinite}
+.wave.second{left:82%;top:60%;animation-delay:-2.5s}
+.snow{position:absolute;left:61%;top:5%;width:25%;height:27%;background:radial-gradient(circle,#fff 1px,transparent 2px) 0 0/17px 23px;opacity:.7;animation:snowFall 7s linear infinite}
+@keyframes cloudDrift{to{transform:translateX(480%)}}
+@keyframes waveWash{50%{transform:translateY(6px) scaleX(.8);opacity:.2}}
+@keyframes snowFall{to{background-position:9px 46px}}
+.rewardFlight{position:fixed;z-index:30;pointer-events:none;font-size:25px;filter:drop-shadow(0 2px 2px #102f48);animation:rewardFly .85s ease-in both}
+@keyframes rewardFly{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}20%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.5);opacity:0}}
+.spark{position:absolute;z-index:10;pointer-events:none;font-size:19px;animation:sparkBurst .8s ease-out both}
+@keyframes sparkBurst{to{transform:translate(var(--sx),var(--sy)) rotate(35deg);opacity:0}}
+.friendThumb{width:24px;height:24px;object-fit:contain;vertical-align:middle}
+.kittyPortrait{width:150px;height:150px;object-fit:contain;animation:kittyHello .65s ease-out}
+@keyframes kittyHello{0%{transform:translateY(20px) rotate(-8deg);opacity:0}70%{transform:translateY(-5px) rotate(3deg)}100%{transform:none;opacity:1}}
+.discoveryArt{font-size:48px;animation:kittyHello .45s ease-out}
+#saveNote{font-size:12px;color:#365d48}
+.reduceMotion .scenery *,.reduceMotion .kittyPortrait,.reduceMotion .discoveryArt{animation:none!important}
+.reduceMotion .cloud{display:none}
+.reduceMotion .rewardFlight,.reduceMotion .spark{display:none}
+@media(prefers-reduced-motion:reduce){.scenery *,.kittyPortrait,.discoveryArt{animation:none!important}.cloud,.rewardFlight,.spark{display:none}}
+@media(max-height:550px){.kittyPortrait{width:85px;height:85px}}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.6 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.7 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -255,10 +281,84 @@ const roleInfo={
   Builder:{icon:"🔧",description:"Help the team collect materials and prepare for escape.",ability:"DOUBLE CRAFT: once per turn, spend 1 action to craft up to two items. Pay the material cost of each item. You can choose the same recipe twice."},
   Medic:{icon:"➕",description:"Watch your team's Hearts and help hurt survivors.",ability:"CARE: once per turn, spend 1 action to restore up to 3 Hearts to yourself or one teammate in your region, up to 5 Hearts. Can rescue a knocked-out teammate."}
 };
+
+const SAVE_KEY="lost-helicopter-save-v1";
+let saveEnabled=false,saveQueued=false,saveStatus="Progress saves on this browser after you start.";
+let pendingExplore=null,pendingCraft=false,outcome=null;
+function snapshotGame(){
+ return {schema:1,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
+}
+function validSave(s){
+ const count=(n,max=100000)=>Number.isInteger(n)&&n>=0&&n<=max;
+ const bool=v=>typeof v==="boolean";
+ const counts=(o,keys)=>o&&keys.every(k=>count(o[k]));
+ const flags=(o,keys)=>o&&keys.every(k=>bool(o[k]));
+ return s&&s.schema===1&&Array.isArray(s.players)&&s.players.length===4
+ &&s.players.every((p,i)=>p&&p.role===roleNames[i]&&Object.hasOwn(regions,p.loc)&&count(p.hp,5)&&bool(p.ko)&&p.ko===(p.hp===0)&&bool(p.abilityUsed))
+ &&count(s.active,3)&&count(s.actions,3)&&count(s.round)&&s.round>=1
+ &&["moveMode","gameOver","centreUnlocked","teleporter","reduceMotion","pendingCraft"].every(k=>bool(s[k]))
+ &&count(s.explorerSteps,2)&&count(s.builderCrafts,2)&&count(s.finalRounds,3)
+ &&counts(s.res,["Gold","Wood","String","Food","Ice"])&&counts(s.inventory,["Tool","Armour","Healing Kit"])
+ &&flags(s.parts,["Core","Crystal","Ring"])&&flags(s.recruited,["Kitty","Fred","Bla Bla"])
+ &&s.friendOwners&&["Kitty","Fred","Bla Bla"].every(k=>(s.friendOwners[k]===null||count(s.friendOwners[k],3))&&s.recruited[k]===(s.friendOwners[k]!==null))
+ &&s.monsters&&["Eyes","Watcher","EvilKitty"].every(k=>s.monsters[k]===null||Object.hasOwn(regions,s.monsters[k]))
+ &&Array.isArray(s.eyeMarks)&&s.eyeMarks.length===4&&s.eyeMarks.every(n=>count(n))
+ &&Array.isArray(s.discoveries)&&s.discoveries.length<200&&s.discoveries.every(v=>typeof v==="string"&&v.length<100&&!/[<>&]/.test(v))
+ &&(s.pendingExplore===null||count(s.pendingExplore,exploration.length-1))
+ &&(s.outcome===null||["won","lost"].includes(s.outcome))
+ &&(!s.pendingCraft||(s.players[s.active].role==="Builder"&&s.builderCrafts===1&&s.players[s.active].abilityUsed))
+ &&(!s.explorerSteps||s.players[s.active].role==="Explorer");
+}
+function writeSave(){
+ if(!saveEnabled)return;
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify(snapshotGame()));saveStatus="Progress saved on this browser.";}
+ catch{saveStatus="Saving unavailable. Keep this tab open to continue playing.";}
+ if($("saveNote"))$("saveNote").textContent=saveStatus;
+}
+function queueSave(){
+ if(!saveEnabled||saveQueued)return;
+ saveQueued=true;queueMicrotask(()=>{saveQueued=false;writeSave();});
+}
+function loadSave(){
+ try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return null;const s=JSON.parse(raw);if(validSave(s))return s;saveStatus="The old save could not be read. Start a new adventure.";}
+ catch{saveStatus="Saving unavailable or the saved adventure could not be read.";}
+ return null;
+}
+function applySave(s){
+ players.forEach((p,i)=>Object.assign(p,s.players[i]));
+ ({active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,reduceMotion,pendingExplore,pendingCraft,outcome}=s);
+ Object.assign(friendOwners,s.friendOwners);discoveries=new Set(s.discoveries);
+ travelBusy=false;saveEnabled=true;render();
+}
+function continueSaved(){
+ closeModal();
+ if(gameOver){if(outcome==="won")win();else lose("This adventure has ended. Try again together.");return;}
+ if(pendingExplore!==null){revealExploration();return;}
+ if(pendingCraft){showCraft(true);return;}
+ if(players[active].loc==="Centre"&&allParts()&&!teleporter){offerPortal();return;}
+ toast(moveMode?"Continue your move by choosing a connected region.":"Adventure resumed. Your actions and supplies are unchanged.");
+}
+function confirmNewGame(cancel){
+ showModal('<h2>Start a new adventure?</h2><p>This replaces the adventure saved on this browser. Your current progress will be lost.</p><button class="choice" id="confirmNew">START NEW ADVENTURE</button><button class="choice alt" id="cancelNew">KEEP CURRENT ADVENTURE</button>',false);
+ $("cancelNew").addEventListener("click",cancel);
+ $("confirmNew").addEventListener("click",()=>{
+   saveEnabled=false;
+   try{localStorage.removeItem(SAVE_KEY);}catch{}
+   location.reload();
+ });
+}
+function showResume(s){
+ showModal('<h2>Your island adventure is waiting</h2><p class="guideCopy">Round '+s.round+' · <b>'+s.players[s.active].role+'</b><br>'+s.actions+' actions left · '+s.players[s.active].loc+'</p><p>Continue with the same supplies, friends, and special abilities.</p><button class="choice" id="resumeGame">CONTINUE ADVENTURE</button><button class="choice alt" id="newSavedGame">NEW ADVENTURE</button>',false);
+ $("resumeGame").addEventListener("click",()=>{applySave(s);continueSaved();});
+ $("newSavedGame").addEventListener("click",()=>confirmNewGame(()=>showResume(s)));
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")writeSave();});
+window.addEventListener("pagehide",writeSave);
+
 function ownedFriends(i){return Object.keys(friendOwners).filter(name=>friendOwners[name]===i);}
 function friendIcons(i){
   const names=ownedFriends(i);
-  return names.length?names.map(name=>'<span role="img" aria-label="'+name+'" title="'+name+'">'+friendInfo[name].icon+'</span>').join(' '):'<span class="noFriends">No friends yet</span>';
+  return names.length?names.map(name=>'<span role="img" aria-label="'+name+'" title="'+name+'">'+friendArt(name)+'</span>').join(' '):'<span class="noFriends">No friends yet</span>';
 }
 function renderRoster(){
   $("roster").innerHTML=players.map((p,i)=>'<button type="button" class="playerTile '+(i===active?'current':'')+'" data-player="'+i+'" aria-label="Open '+p.role+' player card">'+portrait(p.role,'rosterPortrait')+'<span class="playerName">'+(i===active?'▶ ':'')+p.role+'</span><span class="playerHealth">'+(p.ko?'Knocked out':'♥ '+p.hp+'/5')+'</span><span class="playerFriends">'+friendIcons(i)+'</span></button>').join('');
@@ -266,7 +366,7 @@ function renderRoster(){
 }
 function showPlayer(i){
   const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
-  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendInfo[name].icon+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
   $("closePlayer").addEventListener("click",closeModal);
 }
 
@@ -275,6 +375,37 @@ const artPositions={Desert:[27,23],Ice:[72,22],Cave:[80,51],Forest:[51,73],Beach
 const playerColours=["#b78113","#367744","#b65324","#157c86"];
 let reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let travelBusy=false,travelTimer;
+
+function friendArt(name,large=false){
+  return name==="Kitty"?'<img src="assets/kitty-v017.png" class="'+(large?'kittyPortrait':'friendThumb')+'" alt="Kitty the calico cat">':friendInfo[name].icon;
+}
+function motionAllowed(){return !reduceMotion&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches;}
+function burst(symbol,i=active){
+  if(!motionAllowed())return;
+  const pos=artPositions[players[i].loc];
+  for(let j=0;j<6;j++){
+    const el=document.createElement("span");el.className="spark";el.textContent=symbol;el.setAttribute("aria-hidden","true");
+    el.style.left=pos[0]+"%";el.style.top=(pos[1]+10)+"%";
+    el.style.setProperty("--sx",Math.cos(j*Math.PI/3)*42+"px");el.style.setProperty("--sy",Math.sin(j*Math.PI/3)*36+"px");
+    $("map").appendChild(el);setTimeout(()=>el.remove(),850);
+  }
+}
+function flyReward(symbol,i,target){
+  if(!motionAllowed())return;
+  const from=$("mapPlayer"+i).getBoundingClientRect(),to=target.getBoundingClientRect();
+  const el=document.createElement("span");el.className="rewardFlight";el.textContent=symbol;el.setAttribute("aria-hidden","true");
+  el.style.left=(from.x+from.width/2)+"px";el.style.top=(from.y+from.height/2)+"px";
+  el.style.setProperty("--dx",(to.x+to.width/2-from.x-from.width/2)+"px");
+  el.style.setProperty("--dy",(to.y+to.height/2-from.y-from.height/2)+"px");
+  document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+}
+function revealExploration(){
+  const [name,effect]=exploration[pendingExplore];
+  const icon=name==="Kitty"?friendArt("Kitty",true):'<div class="discoveryArt" aria-hidden="true">'+(name.includes("Kitty")||name==="Wall of Eyes"?'👁':["Power Core","Control Crystal","Portal Ring"].includes(name)?'✨':'📖')+'</div>';
+  showModal(icon+'<h2>Exploration</h2><p><b>'+name+'</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>',false);
+  $("resolveExplore").addEventListener("click",()=>{if(pendingExplore===null)return;pendingExplore=null;closeModal();effect();render();});
+}
+
 function portrait(role,cls){return '<img class="'+cls+'" src="assets/'+role.toLowerCase()+'-v015.png" alt="" decoding="async">';}
 function fitBoard(){
   const wrap=$("mapWrap"),board=$("map"),size=Math.max(1,Math.min(wrap.clientWidth-10,wrap.clientHeight-10));
@@ -286,7 +417,7 @@ function renderBoard(){
   const board=$("map");
   if(!board.dataset.ready){
     board.dataset.ready="true";
-    board.innerHTML='<img class="islandArt" src="assets/island-v015.png" alt="Illustrated island: desert northwest, ice northeast, cave east, forest south, beach southwest, and the mysterious centre."><div class="portalHalo" aria-hidden="true"></div><div id="mapFallback" hidden>Artwork could not load. Region buttons still work.</div>';
+    board.innerHTML='<img class="islandArt" src="assets/island-v015.png" alt="Illustrated island: desert northwest, ice northeast, cave east, forest south, beach southwest, and the mysterious centre."><div class="scenery" aria-hidden="true"><i class="cloud"></i><i class="cloud second"></i><i class="wave"></i><i class="wave second"></i><i class="snow"></i></div><div class="portalHalo" aria-hidden="true"></div><div id="mapFallback" hidden>Artwork could not load. Region buttons still work.</div>';
     board.querySelector(".islandArt").addEventListener("error",()=>{$("mapFallback").hidden=false;});
     Object.keys(regions).forEach(name=>{
       const b=document.createElement("button");b.type="button";b.id="region"+name;b.className="region "+name;
@@ -340,8 +471,8 @@ function toast(msg){
   const t=$("toast"); t.textContent=msg; t.classList.add("show");
   clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove("show"),2200);
 }
-function gain(k,n){res[k]+=n;visualGain("+"+n+" "+k,active); toast(`Team gained ${n} ${k}.`);}
-function heal(i,n){visualGain("♥ +"+Math.min(n,5-players[i].hp),i);players[i].hp=Math.min(5,players[i].hp+n); if(players[i].hp>0) players[i].ko=false; toast(`${players[i].role} healed ${n}.`);}
+function gain(k,n){res[k]+=n;flyReward(({Gold:"🪙",Wood:"🪵",String:"🧵",Food:"🫐",Ice:"❄️"})[k],active,$("mission"));visualGain("+"+n+" "+k,active); toast(`Team gained ${n} ${k}.`);}
+function heal(i,n){if(players[i].hp<5)burst("♥",i);visualGain("♥ +"+Math.min(n,5-players[i].hp),i);players[i].hp=Math.min(5,players[i].hp+n); if(players[i].hp>0) players[i].ko=false; toast(`${players[i].role} healed ${n}.`);}
 function spendAction(){
   if(gameOver || actions<=0){toast("No actions left. End the turn.");return false;}
   actions--; return true;
@@ -349,6 +480,7 @@ function spendAction(){
 function allParts(){return parts.Core&&parts.Crystal&&parts.Ring}
 
 function render(){
+  queueSave();
   if(allParts()&&!centreUnlocked){centreUnlocked=true;discoveries.add("Centre Unlocked");toast("All Teleporter Parts found! The Centre is unlocked.");}
   $("turn").innerHTML=`Round ${round} · ${players[active].role} · ${actions} action${actions===1?"":"s"}`;
   $("teamline").textContent="♥ "+players[active].hp+"/5 · "+players[active].loc+" · Tap a player below for their card";
@@ -404,7 +536,7 @@ function showIntro(page=0,replay=false){
   const scene=scenes[page];
   $("overlay").classList.add("introOverlay");
   showModal('<div class="introScene"><img class="introArt" src="assets/island-v015.png" alt="The mysterious island: desert, ice, cave, forest, and a helicopter on the beach"><div class="introCopy"><p class="introChapter">The adventure begins · '+(page+1)+' / 3</p><h2>'+scene.title+'</h2>'+(page===1?'<div class="introCrew">'+players.map(p=>portrait(p.role,'')).join('')+'</div>':'')+'<p>'+scene.copy+'</p><p><b>'+scene.foot+'</b></p><button class="choice" id="introNext">'+(page===2?(replay?'BACK TO JOURNAL':'START ADVENTURE'):'CONTINUE')+'</button>'+(page>0?'<button class="choice alt" id="introBack">PREVIOUS SCENE</button>':'')+'<button class="choice alt" id="introSkip">'+(replay?'CLOSE STORY':'SKIP INTRODUCTION')+'</button></div></div>',false);
-  const finish=()=>{$("overlay").classList.remove("introOverlay");closeModal();if(replay)showJournal();else showTurn();};
+  const finish=()=>{$("overlay").classList.remove("introOverlay");closeModal();if(replay)showJournal();else {saveEnabled=true;showTurn();}};
   $("introNext").addEventListener("click",()=>page<2?showIntro(page+1,replay):finish());
   if(page>0)$("introBack").addEventListener("click",()=>showIntro(page-1,replay));
   $("introSkip").addEventListener("click",finish);
@@ -466,13 +598,10 @@ const exploration=[
   ["Quiet Clearing",()=>heal(active,1)],["Broken Helicopter",()=>gain("Gold",1)]
 ];
 function doExplore(){
-  if(!spendAction())return;
-  let pick=Math.floor(Math.random()*exploration.length);
-  const [name,effect]=exploration[pick];
-  discoveries.add(name);
-  showModal(`<h2>Exploration</h2><p><b>${name}</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>`,false);
-  $("resolveExplore").addEventListener("click",()=>{closeModal();effect();render();});
-  render();
+ if(!spendAction())return;
+ pendingExplore=Math.floor(Math.random()*exploration.length);
+ discoveries.add(exploration[pendingExplore][0]);
+ revealExploration();render();
 }
 function doGather(){
   if(!spendAction())return;
@@ -487,8 +616,8 @@ function friend(name){
   if(!already)friendOwners[name]=active;
   recruited[name]=true;discoveries.add(name);
   const info=friendInfo[name],owner=players[friendOwners[name]];
-  showModal('<div class="cardIcon" role="img" aria-label="'+name+'">'+info.icon+'</div><h2>'+info.title+'</h2><p class="guideCopy">'+(already?name+' is already travelling with <b>'+owner.role+'</b>. No duplicate friend is added.':'<b>'+name+'</b> joined <b>'+owner.role+'</b>!')+'</p><p class="guideCopy">'+info.description+'</p><p>Look for '+info.icon+' beneath '+owner.role+' in the player row. Tap their name to see their card.</p><p><small>Companion only in this prototype: no separate Hearts or usable friend ability yet.</small></p><button class="choice" id="welcomeFriend">'+(already?'BACK TO ISLAND':'WELCOME, '+name.toUpperCase()+'!')+'</button>',false);
-  $("welcomeFriend").addEventListener("click",closeModal);
+  showModal('<div class="cardIcon" role="img" aria-label="'+name+'">'+friendArt(name,true)+'</div><h2>'+info.title+'</h2><p class="guideCopy">'+(already?name+' is already travelling with <b>'+owner.role+'</b>. No duplicate friend is added.':'<b>'+name+'</b> joined <b>'+owner.role+'</b>!')+'</p><p class="guideCopy">'+info.description+'</p><p>Look for '+info.icon+' beneath '+owner.role+' in the player row. Tap their name to see their card.</p><p><small>Companion only in this prototype: no separate Hearts or usable friend ability yet.</small></p><button class="choice" id="welcomeFriend">'+(already?'BACK TO ISLAND':'WELCOME, '+name.toUpperCase()+'!')+'</button>',false);
+  $("welcomeFriend").addEventListener("click",()=>{closeModal();if(!already){burst("♥",friendOwners[name]);flyReward(name==="Kitty"?"🐱":info.icon,friendOwners[name],$("roster").querySelectorAll(".playerTile")[friendOwners[name]]);}});
   render();
 }
 function part(name){
@@ -500,6 +629,7 @@ const recipes=[
   {name:"Healing Kit",cost:{Food:1,String:1},desc:"Immediately heal 2 Hearts."}
 ];
 function showCraft(special=false){
+  pendingCraft=special&&builderCrafts===1;
   const second=special&&builderCrafts===1;
   if(!second&&actions<=0){toast("No actions left.");return;}
   let html=special
@@ -528,7 +658,7 @@ function make(i,special=false){
   Object.entries(r.cost).forEach(([k,v])=>res[k]-=v);
   inventory[r.name]++;discoveries.add(r.name);closeModal();
   if(r.name==="Healing Kit"){inventory[r.name]--;heal(active,2);}
-  else toast(r.name+" crafted.");
+  else {toast(r.name+" crafted.");visualGain(r.name+" crafted",active);burst("✦");}
   render();
   if(special&&builderCrafts===1)showCraft(true);
 }
@@ -643,12 +773,15 @@ function showJournal(){
   showModal(`<h2>Adventure Journal</h2>
     <div class="chips">${[...discoveries].map(x=>`<span class="chip">✓ ${x}</span>`).join("")}</div>
     <div class="journalList"><b>Friends:</b> ${friendText}<br><b>Inventory:</b> Tool ${inventory.Tool}, Armour ${inventory.Armour}<br><b>Eye Marks:</b> ${players.map((p,i)=>`${p.role} ${eyeMarks[i]}`).join(" · ")}</div>
-    <button class="choice" id="replayIntro">READ THE OPENING STORY</button><button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
+    <p id="saveNote"></p><button class="choice alt" id="newAdventure">START A NEW ADVENTURE</button><button class="choice" id="replayIntro">READ THE OPENING STORY</button><button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
   $("closeJournal").addEventListener("click",closeModal);
   $("replayIntro").addEventListener("click",()=>showIntro(0,true));
+  $("saveNote").textContent=saveStatus;
+  $("newAdventure").addEventListener("click",()=>confirmNewGame(showJournal));
 }
 
 function showModal(html,dismissible=true){
+  queueSave();
   modalReturnFocus=document.activeElement;modalDismissible=dismissible;
   $("modal").innerHTML=html;
   const heading=$("modal").querySelector("h2");
@@ -657,6 +790,8 @@ function showModal(html,dismissible=true){
   $("overlay").classList.add("open");$("game").inert=true;$("modal").focus();
 }
 function closeModal(){
+  if($("closeCraft"))pendingCraft=false;
+  queueSave();
   $("overlay").classList.remove("open");$("game").inert=false;
   if(modalReturnFocus&&modalReturnFocus.isConnected)modalReturnFocus.focus();
 }
@@ -671,8 +806,8 @@ document.addEventListener("keydown",e=>{
     else if(!e.shiftKey&&(document.activeElement===last||document.activeElement===$("modal"))){e.preventDefault();first.focus();}
   }
 });
-function win(){gameOver=true;showModal(`<h2>YOU ESCAPED!</h2><p>Everyone reached the Teleporter together.</p><p><b>The Journal remembers your adventure.</b></p><button class="choice" id="restart">PLAY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
-function lose(reason){gameOver=true;showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
+function win(){gameOver=true;outcome="won";showModal(`<h2>YOU ESCAPED!</h2><p>Everyone reached the Teleporter together.</p><p><b>The Journal remembers your adventure.</b></p><button class="choice" id="restart">PLAY AGAIN</button>`);$("restart").addEventListener("click",()=>{saveEnabled=false;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();});}
+function lose(reason){gameOver=true;outcome="lost";showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>{saveEnabled=false;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();});}
 
 $("turn").addEventListener("click",()=>showPlayer(active));
 document.querySelectorAll(".action").forEach(btn=>btn.addEventListener("click",()=>handleAction(btn.dataset.action)));
@@ -681,7 +816,8 @@ toast("Tap MOVE, then a connected region. The map stays on screen while you play
 new ResizeObserver(fitBoard).observe($("mapWrap"));
 $("motionToggle").addEventListener("click",()=>{reduceMotion=!reduceMotion;clearTimeout(travelTimer);travelBusy=false;render();});
 render();
-showIntro();
+const savedAdventure=loadSave();
+if(savedAdventure)showResume(savedAdventure);else showIntro();
 </script>
 </body>
 </html>
