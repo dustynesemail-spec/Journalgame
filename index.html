@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.2</title>
+<title>The Lost Helicopter Journal v0.1.3</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -94,18 +94,35 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 .guideCopy{font-size:17px;line-height:1.5}
 .modal:focus{outline:none}
 .choice:focus-visible{outline:3px solid #173247;outline-offset:2px}
+
+#roster{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#0b5368;padding:0 6px 6px}
+.playerTile{min-width:0;border:2px solid #a7bec2;border-radius:9px;background:#173e4d;color:white;padding:5px 2px;cursor:pointer;font:inherit}
+.playerTile.current{background:#fff0a6;color:#173247;border-color:#e0ad36}
+.playerName{display:block;font-size:clamp(11px,2.8vw,15px);font-weight:bold}
+.playerHealth{display:block;font-size:11px}
+.playerFriends{display:block;min-height:21px;font-size:19px;line-height:1.15;margin-top:3px}
+.noFriends{font-size:10px;opacity:.8}
+.cardIcon{font-size:52px;line-height:1.2;margin:8px}
+.cardStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0}
+.cardStats div{padding:8px;border-radius:9px;background:#ead39c}
+.cardStats b{display:block}
+.friendRow{background:#f4e4bd;padding:10px;border-radius:9px;margin:8px 0;text-align:left}
+.friendRow h3{margin:0 0 4px}
+.friendRow p{margin:4px 0;line-height:1.4}
+#turn{width:100%;text-align:left;border:0;font:inherit;font-weight:bold;cursor:pointer}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.2 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.3 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
     <div class="statusBox">
-      <div id="turn"></div>
+      <button type="button" id="turn" aria-label="Open active player card"></button>
       <div id="teamline"></div>
     </div>
     <div class="statusBox">
@@ -113,6 +130,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
     </div>
   </section>
 
+  <nav id="roster" aria-label="Player cards and friends"></nav>
   <div id="moveGuide" role="status" aria-live="polite"></div>
   <main id="mapWrap">
     <div id="toast"></div>
@@ -159,6 +177,34 @@ let inventory={Tool:0,Armour:0,"Healing Kit":0};
 
 const $=id=>document.getElementById(id);
 let modalDismissible=true, modalReturnFocus=null;
+
+const friendInfo={
+  Kitty:{icon:"🐱",title:"Kitty the island cat",description:"A brave little cat has joined your adventure. Keep Kitty close while you explore the island together."},
+  Fred:{icon:"🎨",title:"Fred the creative friend",description:"Meet Fred! This creative island friend loves drawing and discovering new things. Fred is ready to travel with you."},
+  "Bla Bla":{icon:"💜",title:"Bla Bla the purple friend",description:"A friendly purple blob has found your team! Bla Bla brings kindness and company to your island adventure."}
+};
+const friendOwners={Kitty:null,Fred:null,"Bla Bla":null};
+const roleInfo={
+  Explorer:{icon:"🧭",description:"Lead the way into new regions and search for discoveries.",ability:"SCOUT: spend 1 action to find 1 Food."},
+  Scavenger:{icon:"🎒",description:"Collect supplies to help the whole team survive.",ability:"FIND: spend 1 action to gain 1 local resource (Food at the Centre). Gathering also has a chance to find an extra resource."},
+  Builder:{icon:"🔧",description:"Help the team collect materials and prepare for escape.",ability:"BUILD: spend 1 action to salvage 1 Wood."},
+  Medic:{icon:"➕",description:"Watch your team's Hearts and help hurt survivors.",ability:"CARE: spend 1 action to restore 1 of your own Hearts, up to 5."}
+};
+function ownedFriends(i){return Object.keys(friendOwners).filter(name=>friendOwners[name]===i);}
+function friendIcons(i){
+  const names=ownedFriends(i);
+  return names.length?names.map(name=>'<span role="img" aria-label="'+name+'" title="'+name+'">'+friendInfo[name].icon+'</span>').join(' '):'<span class="noFriends">No friends yet</span>';
+}
+function renderRoster(){
+  $("roster").innerHTML=players.map((p,i)=>'<button type="button" class="playerTile '+(i===active?'current':'')+'" data-player="'+i+'" aria-label="Open '+p.role+' player card"><span class="playerName">'+(i===active?'▶ ':'')+p.role+'</span><span class="playerHealth">'+(p.ko?'Knocked out':'♥ '+p.hp+'/5')+'</span><span class="playerFriends">'+friendIcons(i)+'</span></button>').join('');
+  $("roster").querySelectorAll("[data-player]").forEach(button=>button.addEventListener("click",()=>showPlayer(Number(button.dataset.player))));
+}
+function showPlayer(i){
+  const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
+  showModal('<div class="cardIcon" aria-hidden="true">'+info.icon+'</div><h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendInfo[name].icon+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  $("closePlayer").addEventListener("click",closeModal);
+}
+
 function toast(msg){
   const t=$("toast"); t.textContent=msg; t.classList.add("show");
   clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove("show"),2200);
@@ -174,7 +220,8 @@ function allParts(){return parts.Core&&parts.Crystal&&parts.Ring}
 function render(){
   if(allParts()&&!centreUnlocked){centreUnlocked=true;discoveries.add("Centre Unlocked");toast("All Teleporter Parts found! The Centre is unlocked.");}
   $("turn").innerHTML=`Round ${round} · ${players[active].role} · ${actions} action${actions===1?"":"s"}`;
-  $("teamline").innerHTML=players.map((p,i)=>`${i===active?"▶ ":""}${p.role} <span class="heart">♥${p.hp}</span> ${p.loc}`).join(" · ");
+  $("teamline").textContent="♥ "+players[active].hp+"/5 · "+players[active].loc+" · Tap a player below for their card";
+  renderRoster();
   const partText=Object.entries(parts).map(([k,v])=>`${v?"✓":"□"} ${k}`).join(" · ");
   $("mission").innerHTML=teleporter
     ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Everyone to Centre`
@@ -294,7 +341,13 @@ function doGather(){
   gain(k,n);render();
 }
 function friend(name){
-  recruited[name]=true;discoveries.add(name);toast(`${name} joined the team!`);
+  const already=friendOwners[name]!==null;
+  if(!already)friendOwners[name]=active;
+  recruited[name]=true;discoveries.add(name);
+  const info=friendInfo[name],owner=players[friendOwners[name]];
+  showModal('<div class="cardIcon" role="img" aria-label="'+name+'">'+info.icon+'</div><h2>'+info.title+'</h2><p class="guideCopy">'+(already?name+' is already travelling with <b>'+owner.role+'</b>. No duplicate friend is added.':'<b>'+name+'</b> joined <b>'+owner.role+'</b>!')+'</p><p class="guideCopy">'+info.description+'</p><p>Look for '+info.icon+' beneath '+owner.role+' in the player row. Tap their name to see their card.</p><p><small>Companion only in this prototype: no separate Hearts or usable friend ability yet.</small></p><button class="choice" id="welcomeFriend">'+(already?'BACK TO ISLAND':'WELCOME, '+name.toUpperCase()+'!')+'</button>',false);
+  $("welcomeFriend").addEventListener("click",closeModal);
+  render();
 }
 function part(name){
   parts[name]=true;discoveries.add(name);toast(`${name} found!`);
@@ -410,7 +463,7 @@ function endTurn(){
   actions=3;render();showTurn();
 }
 function showJournal(){
-  const friendText=Object.entries(recruited).filter(x=>x[1]).map(x=>x[0]).join(", ")||"None yet";
+  const friendText=Object.entries(recruited).filter(x=>x[1]).map(x=>friendInfo[x[0]].icon+" "+x[0]+" ("+players[friendOwners[x[0]]].role+")").join(", ")||"None yet";
   showModal(`<h2>Adventure Journal</h2>
     <div class="chips">${[...discoveries].map(x=>`<span class="chip">✓ ${x}</span>`).join("")}</div>
     <div class="journalList"><b>Friends:</b> ${friendText}<br><b>Inventory:</b> Tool ${inventory.Tool}, Armour ${inventory.Armour}<br><b>Eye Marks:</b> ${players.map((p,i)=>`${p.role} ${eyeMarks[i]}`).join(" · ")}</div>
@@ -444,6 +497,7 @@ document.addEventListener("keydown",e=>{
 function win(){gameOver=true;showModal(`<h2>YOU ESCAPED!</h2><p>Everyone reached the Teleporter together.</p><p><b>The Journal remembers your adventure.</b></p><button class="choice" id="restart">PLAY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
 function lose(reason){gameOver=true;showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
 
+$("turn").addEventListener("click",()=>showPlayer(active));
 document.querySelectorAll(".action").forEach(btn=>btn.addEventListener("click",()=>handleAction(btn.dataset.action)));
 $("overlay").addEventListener("click",e=>{if(e.target===$("overlay")&&modalDismissible)closeModal();});
 toast("Tap MOVE, then a connected region. The map stays on screen while you play.");
