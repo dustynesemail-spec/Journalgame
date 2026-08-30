@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>The Lost Helicopter Journal v0.1.1</title>
+<style>
+:root{
+  --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
+  --ocean:#1786a4;--green:#4d8b4b;--red:#9e3b2a;--gold:#d6a126;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#073246;font-family:Trebuchet MS,Arial,sans-serif;color:#162b34}
+button{font:inherit;touch-action:manipulation}
+#game{height:100dvh;display:flex;flex-direction:column;max-width:1100px;margin:auto;background:#cfe7ea;overflow:hidden}
+header{
+  flex:0 0 auto;background:linear-gradient(#d6a45a,#b87b36);border-bottom:4px solid #51341d;
+  padding:5px 8px calc(5px + env(safe-area-inset-top));text-align:center;color:#2b2115;z-index:5
+}
+header h1{font-size:clamp(18px,4.5vw,30px);line-height:1;margin:0}
+header .sub{font-size:11px;font-weight:bold;margin-top:2px}
+.status{
+  flex:0 0 auto;display:grid;grid-template-columns:1.3fr 1fr;gap:6px;padding:6px;background:#0b5368;color:white;z-index:4
+}
+.statusBox{background:#0a3f52;border:2px solid #d1b26b;border-radius:9px;padding:5px 7px;min-height:44px}
+#turn{font-size:14px;font-weight:900}
+#teamline,#mission{font-size:11px;line-height:1.3}
+#mapWrap{position:relative;flex:1 1 auto;min-height:0;padding:6px;background:var(--ocean);overflow:hidden}
+#map{
+  height:100%;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;
+  gap:6px
+}
+.region{
+  border:3px solid rgba(65,45,25,.78);border-radius:18px;padding:7px;position:relative;
+  box-shadow:inset 0 0 16px #ffffff66;overflow:hidden;user-select:none
+}
+.region h2{font-size:clamp(15px,4vw,22px);margin:0;line-height:1}
+.region .res{font-size:10px;font-weight:bold;margin-top:3px}
+.region .occupants{position:absolute;left:5px;right:5px;bottom:4px;display:flex;flex-wrap:wrap;gap:3px}
+.region.selected{outline:4px solid #fff7a6;outline-offset:-5px}
+.region.reachable::after{content:"MOVE";position:absolute;right:5px;top:5px;background:#ffffffdd;color:#1b513b;padding:2px 5px;border-radius:8px;font-size:9px;font-weight:900}
+.Beach{background:#efd28c}.Forest{background:#70aa61}.Desert{background:#e9bf64}.Ice{background:#cdeef5}.Cave{background:#a3947e}.Centre{background:#dcc7a3}
+.locked{filter:grayscale(.75);opacity:.64}
+.pawn,.monster{
+  display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:25px;padding:0 5px;
+  border-radius:999px;background:#173247;color:#fff;font-weight:900;font-size:10px;border:2px solid #fff8
+}
+.monster{background:#8f3028}
+#toast{
+  position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:4;max-width:90%;
+  background:#142f3ce8;color:white;border:2px solid #e3c97b;border-radius:12px;padding:7px 10px;
+  font-size:12px;font-weight:bold;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s
+}
+#toast.show{opacity:1}
+.actions{
+  flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+  background:#082f3f;border-top:3px solid #d4b76d;z-index:6
+}
+.action{
+  min-height:47px;border:0;border-radius:10px;background:#2c705f;color:white;font-weight:900;font-size:11px;
+  box-shadow:0 3px 0 #153d35;padding:4px;cursor:pointer
+}
+.action.secondary{background:#7b552f;box-shadow:0 3px 0 #46301c}
+.action:disabled{opacity:.35;box-shadow:none}
+.action.active{outline:3px solid #ffe289;background:#39856f}
+.overlay{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:14px;z-index:20}
+.overlay.open{display:flex}
+.modal{width:min(540px,96vw);max-height:85dvh;overflow:auto;background:var(--paper2);border:5px solid #684522;border-radius:16px;padding:14px;text-align:center}
+.modal h2{margin:0 0 8px;color:#31573f}
+.choice{display:block;width:100%;margin:7px 0;padding:11px;border:0;border-radius:10px;background:#2d6e5c;color:white;font-weight:900;cursor:pointer}
+.choice.alt{background:#80562f}
+.chips{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:5px 0}
+.chip{background:#ead39c;padding:3px 6px;border-radius:8px;font-size:11px;font-weight:bold}
+.heart{color:#d63d33}
+.journalList{text-align:left;background:#f4e4bd;padding:8px;border-radius:8px}
+@media (max-width:650px){
+  .status{grid-template-columns:1fr 1fr}
+  #map{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 1fr}
+  .region{border-radius:14px;padding:5px}
+  .region h2{font-size:16px}
+  .actions{grid-template-columns:repeat(4,1fr)}
+}
+@media (max-height:650px){
+  header .sub{display:none}
+  .statusBox{min-height:36px;padding:3px 6px}
+  .action{min-height:40px}
+}
+</style>
+</head>
+<body>
+<div id="game">
+  <header>
+    <h1>THE LOST HELICOPTER JOURNAL</h1>
+    <div class="sub">Digital Prototype v0.1.1 · Cooperative Island Adventure</div>
+  </header>
+
+  <section class="status">
+    <div class="statusBox">
+      <div id="turn"></div>
+      <div id="teamline"></div>
+    </div>
+    <div class="statusBox">
+      <div id="mission"></div>
+    </div>
+  </section>
+
+  <main id="mapWrap">
+    <div id="toast"></div>
+    <div id="map"></div>
+  </main>
+
+  <nav class="actions" aria-label="Game actions">
+    <button class="action" data-action="move">MOVE</button>
+    <button class="action" data-action="explore">EXPLORE</button>
+    <button class="action" data-action="gather">GATHER</button>
+    <button class="action" data-action="craft">CRAFT</button>
+    <button class="action" data-action="ability">ABILITY</button>
+    <button class="action" data-action="help">HELP</button>
+    <button class="action secondary" data-action="journal">JOURNAL</button>
+    <button class="action secondary" data-action="end">END TURN</button>
+  </nav>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+"use strict";
+const regions={
+  Beach:{res:"Food",adj:["Forest","Centre"]},
+  Forest:{res:"Wood",adj:["Beach","Desert","Centre"]},
+  Desert:{res:"Gold",adj:["Forest","Ice","Centre"]},
+  Ice:{res:"Ice",adj:["Desert","Cave","Centre"]},
+  Cave:{res:"String",adj:["Ice","Centre"]},
+  Centre:{res:null,adj:["Beach","Forest","Desert","Ice","Cave"]}
+};
+const roleNames=["Explorer","Scavenger","Builder","Medic"];
+const players=roleNames.map(role=>({role,loc:"Beach",hp:5,ko:false}));
+let active=0, actions=3, round=1, moveMode=false, gameOver=false;
+let res={Gold:0,Wood:0,String:0,Food:4,Ice:0};
+let parts={Core:false,Crystal:false,Ring:false};
+let recruited={Kitty:false,Fred:false,"Bla Bla":false};
+let discoveries=new Set(["Beach"]);
+let centreUnlocked=false, teleporter=false, finalRounds=0;
+let monsters={Eyes:null,Watcher:null,EvilKitty:null};
+let eyeMarks=[0,0,0,0];
+let inventory={Tool:0,Armour:0,"Healing Kit":0};
+
+const $=id=>document.getElementById(id);
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+function gain(k,n){res[k]+=n; toast(`Team gained ${n} ${k}.`);}
+function heal(i,n){players[i].hp=Math.min(5,players[i].hp+n); if(players[i].hp>0) players[i].ko=false; toast(`${players[i].role} healed ${n}.`);}
+function spendAction(){
+  if(gameOver || actions<=0){toast("No actions left. End the turn.");return false;}
+  actions--; return true;
+}
+function allParts(){return parts.Core&&parts.Crystal&&parts.Ring}
+
+function render(){
+  if(allParts()&&!centreUnlocked){centreUnlocked=true;discoveries.add("Centre Unlocked");toast("All Teleporter Parts found! The Centre is unlocked.");}
+  $("turn").innerHTML=`Round ${round} · ${players[active].role} · ${actions} action${actions===1?"":"s"}`;
+  $("teamline").innerHTML=players.map((p,i)=>`${i===active?"▶ ":""}${p.role} <span class="heart">♥${p.hp}</span> ${p.loc}`).join(" · ");
+  const partText=Object.entries(parts).map(([k,v])=>`${v?"✓":"□"} ${k}`).join(" · ");
+  $("mission").innerHTML=teleporter
+    ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Everyone to Centre`
+    : `<b>Mission:</b> Find Teleporter Parts<br>${partText}<br><small>Supplies: G${res.Gold} W${res.Wood} S${res.String} F${res.Food} I${res.Ice}</small>`;
+
+  const map=$("map"); map.innerHTML="";
+  Object.keys(regions).forEach(name=>{
+    const d=document.createElement("button");
+    d.type="button";
+    d.className=`region ${name}`+(name==="Centre"&&!centreUnlocked?" locked":"");
+    const here=players.map((p,i)=>p.loc===name?`<span class="pawn">${p.role[0]}</span>`:"").join("");
+    const mons=Object.entries(monsters).map(([k,v])=>v===name?`<span class="monster">${k==="Eyes"?"EYES":k==="Watcher"?"WATCHER":"EVIL"}</span>`:"").join("");
+    const reachable=moveMode && regions[players[active].loc].adj.includes(name) && !(name==="Centre"&&!centreUnlocked);
+    if(reachable)d.classList.add("reachable");
+    if(players[active].loc===name)d.classList.add("selected");
+    d.innerHTML=`<h2>${name}</h2><div class="res">${regions[name].res?`Gather: ${regions[name].res}`:"Teleporter Site"}</div><div class="occupants">${here}${mons}</div>`;
+    d.addEventListener("click",()=>regionTap(name));
+    map.appendChild(d);
+  });
+
+  document.querySelectorAll(".action").forEach(btn=>{
+    const a=btn.dataset.action;
+    if(["move","explore","gather","craft","ability","help"].includes(a)) btn.disabled=actions<=0||players[active].ko||gameOver;
+    btn.classList.toggle("active",a==="move"&&moveMode);
+  });
+}
+function regionTap(name){
+  if(gameOver)return;
+  if(!moveMode){toast(name===players[active].loc?`You are in ${name}. Tap MOVE, then a connected region.`:`Tap MOVE first to travel.`);return;}
+  const p=players[active];
+  if(name==="Centre"&&!centreUnlocked){toast("The Centre is locked until all 3 Teleporter Parts are found.");return;}
+  if(!regions[p.loc].adj.includes(name)){toast(`${name} is not connected to ${p.loc}.`);return;}
+  if(!spendAction())return;
+  p.loc=name; discoveries.add(name); moveMode=false; toast(`${p.role} moved to ${name}.`);
+  if(name==="Centre") offerPortal();
+  render();
+}
+function handleAction(a){
+  if(a==="journal"){showJournal();return;}
+  if(a==="end"){endTurn();return;}
+  if(players[active].ko){toast("This survivor is Knocked Out and needs Help.");return;}
+  if(a==="move"){moveMode=!moveMode; toast(moveMode?"Tap a connected region to move.":"Move cancelled.");render();return;}
+  moveMode=false;
+  if(a==="explore"){doExplore();return;}
+  if(a==="gather"){doGather();return;}
+  if(a==="craft"){showCraft();return;}
+  if(a==="ability"){useAbility();return;}
+  if(a==="help"){doHelp();return;}
+}
+
+const exploration=[
+  ["Wood Cache",()=>gain("Wood",2)],
+  ["Gold Glint",()=>gain("Gold",1)],
+  ["Loose String",()=>gain("String",2)],
+  ["Wild Berries",()=>gain("Food",2)],
+  ["Ice Crystals",()=>gain("Ice",2)],
+  ["Supply Crate",()=>gain(["Gold","Wood","String","Food","Ice"][Math.floor(Math.random()*5)],2)],
+  ["Kitty",()=>friend("Kitty")],["Fred",()=>friend("Fred")],["Bla Bla",()=>friend("Bla Bla")],
+  ["Wall of Eyes",()=>{monsters.Eyes=players[active].loc;discoveries.add("Wall of Eyes");toast("The Wall of Eyes appears!")}],
+  ["Evil Kitty",()=>{monsters.EvilKitty=players[active].loc;discoveries.add("Evil Kitty");toast("Evil Kitty is loose!")}],
+  ["Power Core",()=>part("Core")],["Control Crystal",()=>part("Crystal")],["Portal Ring",()=>part("Ring")],
+  ["Quiet Clearing",()=>heal(active,1)],["Broken Helicopter",()=>gain("Gold",1)]
+];
+function doExplore(){
+  if(!spendAction())return;
+  let pick=Math.floor(Math.random()*exploration.length);
+  if(players[active].role==="Explorer"){
+    const p2=Math.floor(Math.random()*exploration.length);
+    pick=Math.random()<.5?pick:p2;
+  }
+  const [name,effect]=exploration[pick];
+  discoveries.add(name);
+  showModal(`<h2>Exploration</h2><p><b>${name}</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>`);
+  $("resolveExplore").addEventListener("click",()=>{closeModal();effect();render();});
+  render();
+}
+function doGather(){
+  if(!spendAction())return;
+  const k=regions[players[active].loc].res;
+  if(!k){actions++;toast("There is no basic resource to gather here.");render();return;}
+  let n=1;
+  if(players[active].role==="Scavenger"&&Math.random()<.45)n++;
+  if(inventory.Tool>0){inventory.Tool--;n++;toast("Tool used: +1 resource.");}
+  gain(k,n);render();
+}
+function friend(name){
+  recruited[name]=true;discoveries.add(name);toast(`${name} joined the team!`);
+}
+function part(name){
+  parts[name]=true;discoveries.add(name);toast(`${name} found!`);
+}
+const recipes=[
+  {name:"Tool",cost:{Wood:1,String:1},desc:"Your next Gather gives +1 resource."},
+  {name:"Armour",cost:{Gold:1,Wood:1},desc:"Automatically blocks the next monster damage."},
+  {name:"Healing Kit",cost:{Food:1,String:1},desc:"Immediately heal 2 Hearts."}
+];
+function showCraft(){
+  if(actions<=0){toast("No actions left.");return;}
+  let html="<h2>Craft</h2><p>Choose a recipe. The action is spent only if crafting succeeds.</p>";
+  recipes.forEach((r,i)=>{
+    const c=Object.entries(r.cost).map(([k,v])=>`${v} ${k}`).join(" + ");
+    html+=`<button class="choice craftChoice" data-i="${i}">${r.name}<br><small>${c} · ${r.desc}</small></button>`;
+  });
+  html+=`<button class="choice alt" id="closeCraft">Cancel</button>`;
+  showModal(html);
+  document.querySelectorAll(".craftChoice").forEach(b=>b.addEventListener("click",()=>make(Number(b.dataset.i))));
+  $("closeCraft").addEventListener("click",closeModal);
+}
+function make(i){
+  const r=recipes[i];
+  if(!Object.entries(r.cost).every(([k,v])=>res[k]>=v)){toast("Not enough resources.");return;}
+  if(!spendAction())return;
+  Object.entries(r.cost).forEach(([k,v])=>res[k]-=v);
+  inventory[r.name]=(inventory[r.name]||0)+1;discoveries.add(r.name);
+  closeModal();
+  if(r.name==="Healing Kit"){inventory[r.name]--;heal(active,2);}
+  else toast(`${r.name} crafted.`);
+  render();
+}
+function useAbility(){
+  if(!spendAction())return;
+  const p=players[active];
+  if(p.role==="Explorer"){gain("Food",1);toast("SCOUT: found 1 Food.");}
+  if(p.role==="Scavenger"){const k=regions[p.loc].res||"Food";gain(k,1);toast("FIND: gained 1 extra local resource.");}
+  if(p.role==="Builder"){gain("Wood",1);toast("BUILD: salvaged 1 Wood.");}
+  if(p.role==="Medic"){heal(active,1);toast("CARE: restored 1 Heart.");}
+  render();
+}
+function doHelp(){
+  const candidates=players.map((p,i)=>({p,i})).filter(x=>x.i!==active&&x.p.loc===players[active].loc&&(x.p.hp<5||x.p.ko));
+  if(!candidates.length){toast("No teammate here needs Help.");return;}
+  if(!spendAction())return;
+  const t=candidates[0];
+  if(t.p.ko){t.p.hp=2;t.p.ko=false;toast(`${t.p.role} was rescued with 2 Hearts!`);}
+  else heal(t.i,1);
+  render();
+}
+function offerPortal(){
+  if(!allParts()||teleporter)return;
+  const can=res.Gold>=2&&res.Wood>=2&&res.String>=1;
+  showModal(`<h2>The Teleporter</h2><p>You have all 3 parts.</p><p>Build cost: <b>2 Gold + 2 Wood + 1 String</b></p>
+    <button class="choice" id="buildPortal" ${can?"":"disabled"}>${can?"BUILD & ACTIVATE":"NOT ENOUGH RESOURCES"}</button>
+    <button class="choice alt" id="laterPortal">Later</button>`);
+  $("laterPortal").addEventListener("click",closeModal);
+  if(can)$("buildPortal").addEventListener("click",()=>{
+    res.Gold-=2;res.Wood-=2;res.String-=1;teleporter=true;finalRounds=3;discoveries.add("Teleporter Activated");
+    closeModal();toast("THE TELEPORTER IS ACTIVE! Survive 3 rounds.");render();
+  });
+}
+function monsterDamage(i,n=1){
+  if(inventory.Armour>0){inventory.Armour--;toast("Armour blocked the monster hit!");return;}
+  players[i].hp=Math.max(0,players[i].hp-n);
+  if(players[i].hp===0){players[i].ko=true;toast(`${players[i].role} is Knocked Out!`);}
+}
+function islandPhase(){
+  toast("Island phase...");
+  const roll=Math.random();
+  if(roll<.25&&res.Food>0){res.Food--;toast("Storm: the team loses 1 Food.");}
+  else if(roll<.5){res.Food++;toast("Supply wash-up: +1 Food.");}
+  else if(roll<.7){toast("Calm weather. Nothing happens.");}
+
+  if(monsters.Eyes){
+    players.forEach((p,i)=>{
+      if(p.loc===monsters.Eyes){eyeMarks[i]++; if(eyeMarks[i]>=3&&!monsters.Watcher){monsters.Watcher=monsters.Eyes;discoveries.add("The One Who Watches");eyeMarks[i]=0;toast("THE ONE WHO WATCHES awakens!");}}
+    });
+  }
+  if(monsters.EvilKitty&&res.Food>0){res.Food--;toast("Evil Kitty stole 1 Food!");}
+  if(monsters.Watcher){
+    let candidates=players.map((p,i)=>({p,i})).filter(x=>!x.p.ko);
+    if(candidates.length){
+      let target=candidates.sort((a,b)=>b.p.hp-a.p.hp)[0];
+      monsters.Watcher=target.p.loc;monsterDamage(target.i,1);
+    }
+  }
+  if(players.every(p=>p.ko)) lose("The whole team was Knocked Out.");
+}
+function endTurn(){
+  if(gameOver)return;
+  moveMode=false;
+  active++;
+  while(active<players.length&&players[active].ko) active++;
+  if(active>=players.length){
+    active=0;
+    while(active<players.length&&players[active].ko) active++;
+    islandPhase();round++;
+    if(teleporter&&!gameOver){
+      finalRounds--;
+      if(finalRounds<=0){
+        if(players.every(p=>p.loc==="Centre"&&!p.ko)) win();
+        else lose("The portal closed before everyone reached the Centre.");
+      }
+    }
+  }
+  actions=3;render();
+}
+function showJournal(){
+  const friendText=Object.entries(recruited).filter(x=>x[1]).map(x=>x[0]).join(", ")||"None yet";
+  showModal(`<h2>Adventure Journal</h2>
+    <div class="chips">${[...discoveries].map(x=>`<span class="chip">✓ ${x}</span>`).join("")}</div>
+    <div class="journalList"><b>Friends:</b> ${friendText}<br><b>Inventory:</b> Tool ${inventory.Tool}, Armour ${inventory.Armour}<br><b>Eye Marks:</b> ${players.map((p,i)=>`${p.role} ${eyeMarks[i]}`).join(" · ")}</div>
+    <button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
+  $("closeJournal").addEventListener("click",closeModal);
+}
+function showModal(html){$("modal").innerHTML=html;$("overlay").classList.add("open");}
+function closeModal(){$("overlay").classList.remove("open");}
+function win(){gameOver=true;showModal(`<h2>YOU ESCAPED!</h2><p>Everyone reached the Teleporter together.</p><p><b>The Journal remembers your adventure.</b></p><button class="choice" id="restart">PLAY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
+function lose(reason){gameOver=true;showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>location.reload());}
+
+document.querySelectorAll(".action").forEach(btn=>btn.addEventListener("click",()=>handleAction(btn.dataset.action)));
+$("overlay").addEventListener("click",e=>{if(e.target===$("overlay"))closeModal();});
+toast("Tap MOVE, then a connected region. The map stays on screen while you play.");
+render();
+</script>
+</body>
+</html>
