@@ -1,21 +1,25 @@
 # The Lost Helicopter Journal
 
-Cooperative island adventure — digital prototype v0.1.1.
+Cooperative island adventure — digital prototype v0.1.2.
 
 ## Play
 
-Once GitHub Pages is enabled, open https://dustynesemail-spec.github.io/Journalgame/ in Safari or another modern browser. No HTML download or installation is needed.
+[Play the game](https://dustynesemail-spec.github.io/Journalgame/) in Safari or another modern browser. No download or installation is needed.
 
-- Take turns controlling Explorer, Scavenger, Builder and Medic on one device.
-- Each turn gives three actions. Tap MOVE, then a connected region.
+- Pass the device when the large player announcement appears. The next player taps START TURN when ready.
+- Each turn gives three actions. Action pop-ups explain what to do and the cost before you continue. Going back spends nothing.
+- Tap MOVE, read the guide, then choose a region marked MOVE. A reminder stays above the map while choosing.
 - Explore, gather supplies, craft equipment, help teammates and check the Journal.
-- Find all three Teleporter parts, build at the Centre, and get everyone there for the final escape.
-- Refreshing the page starts a new game; this version does not persist progress.
+- Find all three Teleporter parts, build at the Centre, and bring everyone there for the final escape.
+- END TURN asks for confirmation and warns when actions remain.
+- Refreshing starts a new game; progress is not saved between sessions.
 
-## Files and hosting
+## Hosting
 
-`index.html` is the original `lost_helicopter_v011.html`, renamed without changing its contents. All styles and game logic are included in this single file; no dependencies or build command are needed.
+`index.html` includes all game styles and logic. No dependencies or build command are needed. GitHub Pages publishes the `main` branch from `/ (root)` over HTTPS.
 
-For GitHub Pages, use Settings → Pages → Deploy from a branch → main → / (root). Hosting availability depends on repository visibility and the GitHub plan.
+## v0.1.2
 
-This is the existing v0.1.1 prototype, with its current behavior preserved.
+Adds action instructions, explicit player handoffs (including the first turn), a highlighted active-player label and pawn, and persistent movement guidance. Pop-ups support keyboard focus and prevent actions behind them. Exploration cards must be resolved before continuing. Turn selection skips a player knocked out during the island phase.
+
+Based on the original `lost_helicopter_v011.html` prototype. Existing action costs, recipes, abilities and win conditions are retained.
