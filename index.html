@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.5</title>
+<title>The Lost Helicopter Journal v0.1.6</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -160,13 +160,28 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
  #moveGuide{position:absolute;top:30px;left:180px;right:0;z-index:12;font-size:11px;padding:4px}
 }
 
+
+/* Opening story: reader-paced, with no automatic scene changes. */
+#overlay.introOverlay{background:#062b3ef5;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+.introOverlay .modal{width:min(900px,96vw);max-height:94dvh;padding:0;border-color:#cfaf68;background:#fff3d3}
+.introScene{display:grid;grid-template-columns:1fr 1fr;text-align:left}
+.introArt{width:100%;height:100%;min-height:280px;object-fit:cover}
+.introCopy{padding:24px;align-self:center}
+.introCopy h2{font-size:clamp(24px,5vw,38px);line-height:1.05}
+.introCopy p{font-size:17px;line-height:1.5}
+.introCopy .introChapter{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#72552a;font-weight:bold}
+.introCrew{display:flex;gap:8px;justify-content:center}
+.introCrew img{width:21%;height:90px;object-fit:contain}
+@media(max-width:600px){.introScene{grid-template-columns:1fr}.introArt{height:25dvh;min-height:130px;object-position:50% 60%}.introCopy{padding:16px}.introCopy p{font-size:15px;margin:10px 0}.introCrew img{height:60px}}
+@media(orientation:landscape) and (max-height:550px){.introScene{grid-template-columns:35% 65%}.introArt{height:100%;min-height:280px}.introCopy{padding:12px 20px}.introCopy p{font-size:14px;margin:7px 0}.introCopy h2{font-size:25px}.introCrew img{height:50px}.introCopy .choice{padding:8px;margin:5px 0}}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.5 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.6 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -379,6 +394,22 @@ function regionTap(name){
   render();
 }
 function abilityHelp(){return roleInfo[players[active].role].ability;}
+
+function showIntro(page=0,replay=false){
+  const scenes=[
+    {title:"The Lost Helicopter Journal",copy:"Your helicopter is down. Ahead lies a strange island: scorching sand, frozen peaks, tangled forest, and a cave full of secrets. Together, four survivors step onto the beach.",foot:"A cooperative island adventure"},
+    {title:"Four survivors. One team.",copy:"Choose who will play the Explorer, Hunter, Builder, and Medic. Share the device and pass it when the next player’s turn appears. Each player gets 3 actions and can use their special ability once per turn.",foot:"Explore · Gather · Craft · Help"},
+    {title:"Find a way home.",copy:"Search for the Power Core, Control Crystal, and Portal Ring. Find friends, gather supplies, and watch out for monsters. With all 3 parts, reach the Centre and build the Teleporter using 2 Gold, 2 Wood, and 1 String.",foot:"Once activated, get everyone to the Centre before the 3-round countdown ends."}
+  ];
+  const scene=scenes[page];
+  $("overlay").classList.add("introOverlay");
+  showModal('<div class="introScene"><img class="introArt" src="assets/island-v015.png" alt="The mysterious island: desert, ice, cave, forest, and a helicopter on the beach"><div class="introCopy"><p class="introChapter">The adventure begins · '+(page+1)+' / 3</p><h2>'+scene.title+'</h2>'+(page===1?'<div class="introCrew">'+players.map(p=>portrait(p.role,'')).join('')+'</div>':'')+'<p>'+scene.copy+'</p><p><b>'+scene.foot+'</b></p><button class="choice" id="introNext">'+(page===2?(replay?'BACK TO JOURNAL':'START ADVENTURE'):'CONTINUE')+'</button>'+(page>0?'<button class="choice alt" id="introBack">PREVIOUS SCENE</button>':'')+'<button class="choice alt" id="introSkip">'+(replay?'CLOSE STORY':'SKIP INTRODUCTION')+'</button></div></div>',false);
+  const finish=()=>{$("overlay").classList.remove("introOverlay");closeModal();if(replay)showJournal();else showTurn();};
+  $("introNext").addEventListener("click",()=>page<2?showIntro(page+1,replay):finish());
+  if(page>0)$("introBack").addEventListener("click",()=>showIntro(page-1,replay));
+  $("introSkip").addEventListener("click",finish);
+}
+
 function showTurn(){
   if(gameOver)return;
   const p=players[active];
@@ -612,8 +643,9 @@ function showJournal(){
   showModal(`<h2>Adventure Journal</h2>
     <div class="chips">${[...discoveries].map(x=>`<span class="chip">✓ ${x}</span>`).join("")}</div>
     <div class="journalList"><b>Friends:</b> ${friendText}<br><b>Inventory:</b> Tool ${inventory.Tool}, Armour ${inventory.Armour}<br><b>Eye Marks:</b> ${players.map((p,i)=>`${p.role} ${eyeMarks[i]}`).join(" · ")}</div>
-    <button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
+    <button class="choice" id="replayIntro">READ THE OPENING STORY</button><button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
   $("closeJournal").addEventListener("click",closeModal);
+  $("replayIntro").addEventListener("click",()=>showIntro(0,true));
 }
 
 function showModal(html,dismissible=true){
@@ -649,7 +681,7 @@ toast("Tap MOVE, then a connected region. The map stays on screen while you play
 new ResizeObserver(fitBoard).observe($("mapWrap"));
 $("motionToggle").addEventListener("click",()=>{reduceMotion=!reduceMotion;clearTimeout(travelTimer);travelBusy=false;render();});
 render();
-showTurn();
+showIntro();
 </script>
 </body>
 </html>
