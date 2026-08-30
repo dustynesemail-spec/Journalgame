@@ -1,6 +1,6 @@
 # The Lost Helicopter Journal
 
-Cooperative island adventure — digital prototype v0.1.3.
+Cooperative island adventure — digital prototype v0.1.4.
 
 ## Play
 
@@ -29,3 +29,14 @@ Based on the original `lost_helicopter_v011.html` prototype. Existing action cos
 Friends now introduce themselves with a description card and belong to the player who discovers them. Kitty (🐱), Fred (🎨), and Bla Bla (💜) appear beneath their owner in the player row. Repeat discoveries keep the original owner and do not add duplicates.
 
 Tap a player name to view health, location, status, actions, ability, eye marks, current friends, and shared items and supplies. Friends have no separate health or usable abilities yet; inventory remains shared. The phone layout keeps the map and controls onscreen.
+
+## v0.1.4 — Special abilities
+
+Each player can use their special ability once on their turn, spending 1 of their 3 actions. The button shows ABILITY USED after success and resets on that player's next turn. Cancelling before the first successful step costs nothing.
+
+- Explorer — TRAILBLAZE: move through up to two connected regions for 1 action. The second step is free; stopping after the first step does not refund the action.
+- Hunter (formerly Scavenger) — HUNT: gather 2 local materials. A Tool still adds one extra and is consumed. Normal Gather collects 1, with no random Hunter bonus.
+- Builder — DOUBLE CRAFT: craft up to two items for 1 action, paying the material cost of each. The second item costs no extra action, including when the first used the final action. May finish after one item.
+- Medic — CARE: choose self or one teammate in the same region and restore up to 3 Hearts, capped at 5. Can rescue a knocked-out survivor with 3 Hearts. No valid target means no cost.
+
+Normal movement, crafting and Help remain available as separate actions. Updated guides and player cards describe the new abilities.
