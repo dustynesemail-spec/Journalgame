@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.3</title>
+<title>The Lost Helicopter Journal v0.1.4</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -117,7 +117,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.3 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.4 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -163,9 +163,10 @@ const regions={
   Cave:{res:"String",adj:["Ice","Centre"]},
   Centre:{res:null,adj:["Beach","Forest","Desert","Ice","Cave"]}
 };
-const roleNames=["Explorer","Scavenger","Builder","Medic"];
-const players=roleNames.map(role=>({role,loc:"Beach",hp:5,ko:false}));
+const roleNames=["Explorer","Hunter","Builder","Medic"];
+const players=roleNames.map(role=>({role,loc:"Beach",hp:5,ko:false,abilityUsed:false}));
 let active=0, actions=3, round=1, moveMode=false, gameOver=false;
+let explorerSteps=0,builderCrafts=0;
 let res={Gold:0,Wood:0,String:0,Food:4,Ice:0};
 let parts={Core:false,Crystal:false,Ring:false};
 let recruited={Kitty:false,Fred:false,"Bla Bla":false};
@@ -185,10 +186,10 @@ const friendInfo={
 };
 const friendOwners={Kitty:null,Fred:null,"Bla Bla":null};
 const roleInfo={
-  Explorer:{icon:"🧭",description:"Lead the way into new regions and search for discoveries.",ability:"SCOUT: spend 1 action to find 1 Food."},
-  Scavenger:{icon:"🎒",description:"Collect supplies to help the whole team survive.",ability:"FIND: spend 1 action to gain 1 local resource (Food at the Centre). Gathering also has a chance to find an extra resource."},
-  Builder:{icon:"🔧",description:"Help the team collect materials and prepare for escape.",ability:"BUILD: spend 1 action to salvage 1 Wood."},
-  Medic:{icon:"➕",description:"Watch your team's Hearts and help hurt survivors.",ability:"CARE: spend 1 action to restore 1 of your own Hearts, up to 5."}
+  Explorer:{icon:"🧭",description:"Lead the way into new regions and search for discoveries.",ability:"TRAILBLAZE: once per turn, spend 1 action to move through up to two connected regions. Choose each step on the map. You may stop after one."},
+  Hunter:{icon:"🎒",description:"Collect supplies to help the whole team survive.",ability:"HUNT: once per turn, spend 1 action to gather 2 of the local material. A Tool adds 1 extra material and is used up. No gathering at the Centre."},
+  Builder:{icon:"🔧",description:"Help the team collect materials and prepare for escape.",ability:"DOUBLE CRAFT: once per turn, spend 1 action to craft up to two items. Pay the material cost of each item. You can choose the same recipe twice."},
+  Medic:{icon:"➕",description:"Watch your team's Hearts and help hurt survivors.",ability:"CARE: once per turn, spend 1 action to restore up to 3 Hearts to yourself or one teammate in your region, up to 5 Hearts. Can rescue a knocked-out teammate."}
 };
 function ownedFriends(i){return Object.keys(friendOwners).filter(name=>friendOwners[name]===i);}
 function friendIcons(i){
@@ -201,7 +202,7 @@ function renderRoster(){
 }
 function showPlayer(i){
   const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
-  showModal('<div class="cardIcon" aria-hidden="true">'+info.icon+'</div><h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendInfo[name].icon+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  showModal('<div class="cardIcon" aria-hidden="true">'+info.icon+'</div><h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendInfo[name].icon+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
   $("closePlayer").addEventListener("click",closeModal);
 }
 
@@ -227,7 +228,7 @@ function render(){
     ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Everyone to Centre`
     : `<b>Mission:</b> Find Teleporter Parts<br>${partText}<br><small>Supplies: G${res.Gold} W${res.Wood} S${res.String} F${res.Food} I${res.Ice}</small>`;
 
-  $("moveGuide").textContent=moveMode ? players[active].role+": tap a region marked MOVE. Tap MOVE again to cancel. Cost: 1 action." : "";
+  $("moveGuide").textContent=moveMode ? players[active].role+(explorerSteps>0?": "+explorerSteps+" connected move"+(explorerSteps===1?"":"s")+" left. "+(explorerSteps===1?"No extra action cost.":"Costs 1 action for both."):" : tap a region marked MOVE. Cost: 1 action.")+" Tap CANCEL MOVE to stop." : "";
   $("moveGuide").classList.toggle("visible",moveMode);
   const map=$("map"); map.innerHTML="";
   Object.keys(regions).forEach(name=>{
@@ -247,24 +248,33 @@ function render(){
   document.querySelectorAll(".action").forEach(btn=>{
     const a=btn.dataset.action;
     if(["move","explore","gather","craft","ability","help"].includes(a)) btn.disabled=actions<=0||players[active].ko||gameOver;
+    if(a==="ability"){
+      btn.disabled=actions<=0||players[active].ko||gameOver||players[active].abilityUsed;
+      btn.textContent=players[active].abilityUsed?"ABILITY USED":"ABILITY";
+    }
+    if(a==="move"){
+      btn.textContent=moveMode?"CANCEL MOVE":"MOVE";
+      if(moveMode&&!gameOver&&!players[active].ko)btn.disabled=false;
+    }
     btn.classList.toggle("active",a==="move"&&moveMode);
   });
 }
 function regionTap(name){
-  if(gameOver)return;
-  if(!moveMode){toast(name===players[active].loc?`You are in ${name}. Tap MOVE, then a connected region.`:`Tap MOVE first to travel.`);return;}
+  if(gameOver||players[active].ko)return;
+  if(!moveMode){toast("Tap MOVE or your Explorer ability first, then choose a connected region.");return;}
   const p=players[active];
-  if(name==="Centre"&&!centreUnlocked){toast("The Centre is locked until all 3 Teleporter Parts are found.");return;}
-  if(!regions[p.loc].adj.includes(name)){toast(`${name} is not connected to ${p.loc}.`);return;}
-  if(!spendAction())return;
-  p.loc=name; discoveries.add(name); moveMode=false; toast(`${p.role} moved to ${name}.`);
-  if(name==="Centre") offerPortal();
+  if(name==="Centre"&&!centreUnlocked){toast("Find all 3 Teleporter parts to unlock the Centre.");return;}
+  if(!regions[p.loc].adj.includes(name)){toast(name+" is not connected to "+p.loc+".");return;}
+  if(explorerSteps===2){if(!spendAbility())return;}
+  else if(explorerSteps===0){if(!spendAction())return;}
+  p.loc=name;discoveries.add(name);
+  if(explorerSteps>0)explorerSteps--;
+  moveMode=explorerSteps>0;
+  toast(p.role+" moved to "+name+(moveMode?". Choose one more connected region, or tap CANCEL MOVE.":"."));
+  if(name==="Centre"&&!teleporter){explorerSteps=0;moveMode=false;offerPortal();}
   render();
 }
-
-function abilityHelp(){
-  return {Explorer:"SCOUT finds 1 Food for the team.",Scavenger:"FIND gains 1 "+(regions[players[active].loc].res||"Food")+" for the team.",Builder:"BUILD salvages 1 Wood for the team.",Medic:"CARE restores 1 of your own Hearts, up to 5."}[players[active].role];
-}
+function abilityHelp(){return roleInfo[players[active].role].ability;}
 function showTurn(){
   if(gameOver)return;
   const p=players[active];
@@ -275,13 +285,14 @@ function handleAction(a){
   if(gameOver || $("overlay").classList.contains("open"))return;
   if(a==="journal" || (a==="move"&&moveMode)){performAction(a);return;}
   if(a!=="end"&&(actions<=0||players[active].ko))return;
+  if(a==="ability"&&players[active].abilityUsed)return;
   const p=players[active], resource=regions[p.loc].res;
   const details={
     move:["How to move","You are in <b>"+p.loc+"</b>. Tap CHOOSE DESTINATION, then tap a region marked <b>MOVE</b>. You can only travel to a connected region. The Centre stays locked until all 3 parts are found.","CHOOSE DESTINATION","Costs 1 action only when you move."],
     explore:["Explore "+p.loc,"Discover a surprise: supplies, a friend, a Teleporter part — or a monster! Tap RESOLVE on the discovery card to see what happens.","EXPLORE HERE","Costs 1 action."],
-    gather:["Gather supplies",resource?"In <b>"+p.loc+"</b>, gather <b>"+resource+"</b> for the team. A Tool adds 1 extra resource and is used up. The Scavenger may find an extra resource.":"There are no supplies to gather at the Centre. Move to another region first.","GATHER "+(resource||"SUPPLIES"),resource?"Costs 1 action.":"No action will be spent."],
+    gather:["Gather supplies",resource?"In <b>"+p.loc+"</b>, gather <b>"+resource+"</b> for the team. Normal Gather collects 1 material. A Tool adds 1 extra resource and is used up. Use ABILITY for the Hunter’s double gather.":"There are no supplies to gather at the Centre. Move to another region first.","GATHER "+(resource||"SUPPLIES"),resource?"Costs 1 action.":"No action will be spent."],
     craft:["Make something useful","Choose a recipe on the next screen. It shows the supplies needed and what the item does. Supplies belong to the whole team.","SEE RECIPES","Costs 1 action only when you successfully craft."],
-    ability:[p.role+"'s ability",abilityHelp(),"USE ABILITY","Costs 1 action."],
+    ability:[p.role+"'s ability",abilityHelp(),"USE ABILITY","Costs 1 action. Once per turn (every 3 actions). Cancelling before success spends nothing."],
     help:["Help a teammate","Stand in the same region as a hurt teammate. Help restores 1 Heart, or rescues a knocked-out teammate with 2 Hearts. If several need help, the first in player order is helped.","HELP HERE","Costs 1 action only if someone here needs help."],
     end:["Ready to pass the device?",actions>0?"You still have <b>"+actions+" action"+(actions===1?"":"s")+"</b>. Ending now leaves them unused.":"Your actions are finished. Let the next survivor take their turn.","END MY TURN","After everyone has a turn, the island and monsters act."]
   };
@@ -296,8 +307,8 @@ function performAction(a){
   if(a==="journal"){showJournal();return;}
   if(a==="end"){endTurn();return;}
   if(players[active].ko){toast("This survivor is Knocked Out and needs Help.");return;}
-  if(a==="move"){moveMode=!moveMode; toast(moveMode?"Tap a connected region to move.":"Move cancelled.");render();return;}
-  moveMode=false;
+  if(a==="move"){explorerSteps=0;moveMode=!moveMode; toast(moveMode?"Tap a connected region to move.":"Move cancelled.");render();return;}
+  moveMode=false;explorerSteps=0;
   if(a==="explore"){doExplore();return;}
   if(a==="gather"){doGather();return;}
   if(a==="craft"){showCraft();return;}
@@ -321,10 +332,6 @@ const exploration=[
 function doExplore(){
   if(!spendAction())return;
   let pick=Math.floor(Math.random()*exploration.length);
-  if(players[active].role==="Explorer"){
-    const p2=Math.floor(Math.random()*exploration.length);
-    pick=Math.random()<.5?pick:p2;
-  }
   const [name,effect]=exploration[pick];
   discoveries.add(name);
   showModal(`<h2>Exploration</h2><p><b>${name}</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>`,false);
@@ -336,7 +343,6 @@ function doGather(){
   const k=regions[players[active].loc].res;
   if(!k){actions++;toast("There is no basic resource to gather here.");render();return;}
   let n=1;
-  if(players[active].role==="Scavenger"&&Math.random()<.45)n++;
   if(inventory.Tool>0){inventory.Tool--;n++;toast("Tool used: +1 resource.");}
   gain(k,n);render();
 }
@@ -357,37 +363,71 @@ const recipes=[
   {name:"Armour",cost:{Gold:1,Wood:1},desc:"Automatically blocks the next monster damage."},
   {name:"Healing Kit",cost:{Food:1,String:1},desc:"Immediately heal 2 Hearts."}
 ];
-function showCraft(){
-  if(actions<=0){toast("No actions left.");return;}
-  let html="<h2>Craft</h2><p>Choose a recipe. The action is spent only if crafting succeeds.</p>";
+function showCraft(special=false){
+  const second=special&&builderCrafts===1;
+  if(!second&&actions<=0){toast("No actions left.");return;}
+  let html=special
+    ? "<h2>DOUBLE CRAFT</h2><p>"+(second?"First item crafted! Choose a second item for no extra action.":"Craft up to two items using 1 action and your once-per-turn ability.")+"</p><p>Pay the material cost for each item. You may choose the same recipe twice.</p>"
+    : "<h2>Craft</h2><p>Choose a recipe. The action is spent only if crafting succeeds.</p>";
+  html+='<p id="craftFeedback" role="status"></p>';
   recipes.forEach((r,i)=>{
-    const c=Object.entries(r.cost).map(([k,v])=>`${v} ${k}`).join(" + ");
-    html+=`<button class="choice craftChoice" data-i="${i}">${r.name}<br><small>${c} · ${r.desc}</small></button>`;
+    const c=Object.entries(r.cost).map(([k,v])=>v+" "+k).join(" + ");
+    html+='<button class="choice craftChoice" data-i="'+i+'">'+r.name+'<br><small>'+c+' · '+r.desc+'</small></button>';
   });
-  html+=`<button class="choice alt" id="closeCraft">Cancel</button>`;
+  html+='<button class="choice alt" id="closeCraft">'+(second?'FINISH CRAFTING':'Cancel')+'</button>';
   showModal(html);
-  document.querySelectorAll(".craftChoice").forEach(b=>b.addEventListener("click",()=>make(Number(b.dataset.i))));
+  document.querySelectorAll(".craftChoice").forEach(b=>b.addEventListener("click",()=>make(Number(b.dataset.i),special)));
   $("closeCraft").addEventListener("click",closeModal);
 }
-function make(i){
+function make(i,special=false){
   const r=recipes[i];
-  if(!Object.entries(r.cost).every(([k,v])=>res[k]>=v)){toast("Not enough resources.");return;}
-  if(!spendAction())return;
+  if(!Object.entries(r.cost).every(([k,v])=>res[k]>=v)){
+    $("craftFeedback").textContent="Not enough materials for "+r.name+". Choose another recipe or finish.";return;
+  }
+  if(special){
+    if(builderCrafts===0){if(!spendAbility())return;}
+    else if(builderCrafts!==1)return;
+    builderCrafts++;
+  }else if(!spendAction())return;
   Object.entries(r.cost).forEach(([k,v])=>res[k]-=v);
-  inventory[r.name]=(inventory[r.name]||0)+1;discoveries.add(r.name);
-  closeModal();
+  inventory[r.name]++;discoveries.add(r.name);closeModal();
   if(r.name==="Healing Kit"){inventory[r.name]--;heal(active,2);}
-  else toast(`${r.name} crafted.`);
+  else toast(r.name+" crafted.");
   render();
+  if(special&&builderCrafts===1)showCraft(true);
+}
+function spendAbility(){
+  if(players[active].abilityUsed){toast("Special ability already used this turn.");return false;}
+  if(!spendAction())return false;
+  players[active].abilityUsed=true;return true;
 }
 function useAbility(){
-  if(!spendAction())return;
   const p=players[active];
-  if(p.role==="Explorer"){gain("Food",1);toast("SCOUT: found 1 Food.");}
-  if(p.role==="Scavenger"){const k=regions[p.loc].res||"Food";gain(k,1);toast("FIND: gained 1 extra local resource.");}
-  if(p.role==="Builder"){gain("Wood",1);toast("BUILD: salvaged 1 Wood.");}
-  if(p.role==="Medic"){heal(active,1);toast("CARE: restored 1 Heart.");}
-  render();
+  if(p.abilityUsed||actions<=0||p.ko||gameOver)return;
+  if(p.role==="Explorer"){
+    explorerSteps=2;moveMode=true;
+    toast("Choose your first connected region. Two moves cost 1 action.");render();return;
+  }
+  if(p.role==="Hunter"){
+    const material=regions[p.loc].res;
+    if(!material){toast("No materials here. Move to another region. Ability not used.");return;}
+    if(!spendAbility())return;
+    let amount=2;
+    if(inventory.Tool>0){inventory.Tool--;amount++;}
+    gain(material,amount);render();return;
+  }
+  if(p.role==="Builder"){builderCrafts=0;showCraft(true);return;}
+  if(p.role==="Medic"){
+    const targets=players.map((target,i)=>({target,i})).filter(x=>x.target.loc===p.loc&&x.target.hp<5);
+    showModal('<h2>CARE · Restore up to 3 Hearts</h2><p>Choose yourself or one teammate here. Healing stops at 5 Hearts. A knocked-out teammate is rescued with 3 Hearts.</p>'+(targets.length?targets.map(({target,i})=>'<button class="choice medicTarget" data-player="'+i+'">'+target.role+' · ♥ '+target.hp+'/5 → '+Math.min(5,target.hp+3)+'/5</button>').join(''):'<p>No one here needs healing. Your action and ability will not be spent.</p>')+'<button class="choice alt" id="cancelHeal">BACK TO ISLAND</button>');
+    $("modal").querySelectorAll(".medicTarget").forEach(b=>b.addEventListener("click",()=>{
+      const i=Number(b.dataset.player);
+      if(players[i].loc!==p.loc||players[i].hp>=5)return;
+      if(!spendAbility())return;
+      closeModal();heal(i,3);render();
+    }));
+    $("cancelHeal").addEventListener("click",closeModal);
+  }
 }
 function doHelp(){
   const candidates=players.map((p,i)=>({p,i})).filter(x=>x.i!==active&&x.p.loc===players[active].loc&&(x.p.hp<5||x.p.ko));
@@ -460,7 +500,7 @@ function endTurn(){
     if(next<0){lose("The whole team was Knocked Out.");return;}
     active=next;
   }
-  actions=3;render();showTurn();
+  actions=3;players[active].abilityUsed=false;explorerSteps=0;builderCrafts=0;render();showTurn();
 }
 function showJournal(){
   const friendText=Object.entries(recruited).filter(x=>x[1]).map(x=>friendInfo[x[0]].icon+" "+x[0]+" ("+players[friendOwners[x[0]]].role+")").join(", ")||"None yet";
