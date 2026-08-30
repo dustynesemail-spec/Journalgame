@@ -1,6 +1,6 @@
 # The Lost Helicopter Journal
 
-Cooperative island adventure — digital prototype v0.1.4.
+Cooperative island adventure — digital prototype v0.1.5.
 
 ## Play
 
@@ -16,7 +16,7 @@ Cooperative island adventure — digital prototype v0.1.4.
 
 ## Hosting
 
-`index.html` includes all game styles and logic. No dependencies or build command are needed. GitHub Pages publishes the `main` branch from `/ (root)` over HTTPS.
+`index.html` includes all game styles and logic; the `assets/` folder contains the five illustrations. No dependencies or build command are needed. GitHub Pages publishes the `main` branch from `/ (root)` over HTTPS.
 
 ## v0.1.2
 
@@ -40,3 +40,14 @@ Each player can use their special ability once on their turn, spending 1 of thei
 - Medic — CARE: choose self or one teammate in the same region and restore up to 3 Hearts, capped at 5. Can rescue a knocked-out survivor with 3 Hearts. No valid target means no cost.
 
 Normal movement, crafting and Help remain available as separate actions. Updated guides and player cards describe the new abilities.
+
+## v0.1.5 — First illustrated release
+
+- Illustrated island based on Rouge's original map geography, with tappable HTML region labels.
+- Four illustrated player pieces slide between regions. Tap a piece or player name to open their card.
+- Matching portraits on player cards and turn announcements.
+- Brief card entrances, resource/healing feedback, and an active-portal glow.
+- Motion: reduced disables decorative and movement animations; the system reduced-motion preference is respected.
+- The board scales as a square without cropping; gameplay, friend ownership and once-per-turn abilities are retained.
+
+First artwork download is approximately 7.3 MB. No videos or external image host are used. Friend and monster artwork remains a later pass; their current indicators still work.
