@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.10</title>
+<title>The Lost Helicopter Journal v0.2.0</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -264,13 +264,38 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 .turnOrder small{display:block;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(orientation:landscape) and (max-height:550px){.playerOwner{font-size:9px;margin:0}.turnHuman{font-size:26px}.turnCharacter{font-size:16px}}
 
+
+.actions{grid-template-columns:repeat(5,minmax(0,1fr))}
+.action{font-size:10px}
+.modal.wideModal{width:min(780px,96vw)}
+.battleHeading{display:grid;grid-template-columns:65px 1fr;gap:8px;align-items:center;text-align:left}
+.battleHeading h2{font-size:24px;margin:0}.battleHeading p{font-size:12px;margin:5px 0}
+.battleEnemy{font-size:54px;display:inline-block;animation:enemyArrive .35s ease-out}
+@keyframes enemyArrive{from{transform:scale(.3) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+.battleTeam,.endingTeam{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:10px 0}
+.battleHero{min-width:0;background:#e8debd;border:2px solid #b8a470;border-radius:10px;padding:4px 2px;font-size:11px}
+.battleHero.current{border-color:#15785f;background:#e4f4d5;box-shadow:0 0 0 2px #38846a}
+.battleHero img{height:48px;width:100%;object-fit:contain;display:block}.battleHero b,.battleHero small,.battleHero span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.battleHero small{font-size:10px}.battleActions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.battleActions .choice{margin:0;min-height:47px;padding:7px;font-size:12px}.choice:disabled{opacity:.42;cursor:default}
+.battleHint{font-size:12px;line-height:1.4}.battleLog{font-size:12px;text-align:left;background:#eadfc0;border-radius:9px;padding:7px;max-height:100px;overflow:auto}.battleLog div+div{margin-top:4px}
+.packRow{border-bottom:1px solid #cbb47c;text-align:left;font-size:14px;padding:7px}.packRow p{line-height:1.5}
+.portalEmblem{font-size:72px;animation:portalGlow 2s ease-in-out infinite alternate}
+.endingScene{position:relative;height:170px;overflow:hidden;border-radius:12px;background:#197686}.endingScene img{width:100%;height:100%;object-fit:cover;object-position:center}.endingPortal{position:absolute;inset:20px 0;text-align:center;font-size:110px;filter:drop-shadow(0 0 18px #a9ffee);animation:endingGlow 2s ease-in-out infinite alternate}
+@keyframes endingGlow{to{transform:scale(1.1);filter:drop-shadow(0 0 30px #d8fff8)}}
+.endingTeam img{width:100%;height:78px;object-fit:contain}.endingTeam b,.endingTeam small{display:block;font-size:11px;overflow-wrap:anywhere}
+.reduceMotion .battleEnemy,.reduceMotion .endingPortal,.reduceMotion .portalEmblem{animation:none!important}
+@media(prefers-reduced-motion:reduce){.battleEnemy,.endingPortal,.portalEmblem{animation:none!important}}
+@media(max-width:650px){.actions{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(orientation:landscape) and (max-height:550px){.battleScreen{display:grid;grid-template-columns:.9fr 1.1fr;gap:14px}.battleEnemy{font-size:42px}.battleHeading h2{font-size:19px}.battleHero img{height:38px}.battleHero{font-size:10px}.battleScreen h3{margin:4px}.battleActions .choice{min-height:40px;font-size:11px}.battleScreen p{font-size:11px;margin:6px 0}.endingScene{height:90px}.endingPortal{font-size:60px;inset:5px}.endingTeam img{height:45px}}
+
+.modalOpen .scenery *,.modalOpen .mapPawn .pawnArt{animation-play-state:paused}
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.10 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.2.0 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -298,7 +323,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
     <button class="action" data-action="ability">ABILITY</button>
     <button class="action" data-action="help">HELP</button>
     <button class="action secondary" data-action="journal">JOURNAL</button>
-    <button class="action secondary" data-action="end">END TURN</button>
+    <button class="action secondary" data-action="portal">PORTAL</button><button class="action secondary" data-action="pack">PACK</button><button class="action secondary" data-action="end">END TURN</button>
   </nav>
 </div>
 
@@ -327,7 +352,7 @@ let discoveries=new Set(["Beach"]);
 let centreUnlocked=false, teleporter=false, finalRounds=0;
 let monsters={Eyes:null,Watcher:null,EvilKitty:null};
 let eyeMarks=[0,0,0,0];
-let inventory={Tool:0,Armour:0,"Healing Kit":0};
+let inventory={Tool:0,Armour:0,"Healing Kit":1};
 
 const $=id=>document.getElementById(id);
 let modalDismissible=true, modalReturnFocus=null;
@@ -349,14 +374,14 @@ const SAVE_KEY="lost-helicopter-save-v1";
 let saveEnabled=false,saveQueued=false,saveStatus="Progress saves on this browser after you start.";
 let pendingExplore=null,pendingCraft=false,outcome=null;
 function snapshotGame(){
- return {schema:1,party,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
+ return {schema:1,party,gear,battle,encounterStamp,battlesWon,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
 }
 function validSave(s){
  const count=(n,max=100000)=>Number.isInteger(n)&&n>=0&&n<=max;
  const bool=v=>typeof v==="boolean";
  const counts=(o,keys)=>o&&keys.every(k=>count(o[k]));
  const flags=(o,keys)=>o&&keys.every(k=>bool(o[k]));
- return s&&s.schema===1&&(s.party==null||validParty(s.party))&&Array.isArray(s.players)&&s.players.length===4
+ return s&&s.schema===1&&validCombatSave(s)&&(s.party==null||validParty(s.party))&&Array.isArray(s.players)&&s.players.length===4
  &&s.players.every((p,i)=>p&&p.role===roleNames[i]&&Object.hasOwn(regions,p.loc)&&count(p.hp,5)&&bool(p.ko)&&p.ko===(p.hp===0)&&bool(p.abilityUsed))
  &&count(s.active,3)&&count(s.actions,3)&&count(s.round)&&s.round>=1
  &&["moveMode","gameOver","centreUnlocked","teleporter","reduceMotion","pendingCraft"].every(k=>bool(s[k]))
@@ -391,15 +416,17 @@ function applySave(s){
  party=s.party||null;
  players.forEach((p,i)=>Object.assign(p,s.players[i]));
  ({active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,reduceMotion,pendingExplore,pendingCraft,outcome}=s);
- Object.assign(friendOwners,s.friendOwners);discoveries=new Set(s.discoveries);
+ Object.assign(friendOwners,s.friendOwners);discoveries=new Set(s.discoveries);restoreCombatState(s);
  travelBusy=false;saveEnabled=true;render();
 }
 function continueSaved(){
  closeModal();
  if(gameOver){if(outcome==="won")win();else lose("This adventure has ended. Try again together.");return;}
+ if(battle){showBattle();return;}
  if(pendingExplore!==null){revealExploration();return;}
  if(pendingCraft){showCraft(true);return;}
- if(players[active].loc==="Centre"&&allParts()&&!teleporter){offerPortal();return;}
+ if(players[active].loc==="Centre"&&allParts()){offerPortal();return;}
+ if(checkEncounter())return;
  toast(moveMode?"Continue your move by choosing a connected region.":"Adventure resumed. Your actions and supplies are unchanged.");
 }
 function confirmNewGame(cancel){
@@ -475,7 +502,7 @@ function renderRoster(){
 }
 function showPlayer(i){
   const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
-  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p><b>Played by '+controllerHTML(i)+'</b></p><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p><b>Played by '+controllerHTML(i)+'</b></p><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+weaponCard(i)+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits stay in the pack until you use them.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
   $("closePlayer").addEventListener("click",closeModal);
 }
 
@@ -661,6 +688,7 @@ function render(){
       btn.textContent=moveMode?"CANCEL MOVE":"MOVE";
       if(moveMode&&!gameOver&&!players[active].ko)btn.disabled=false;
     }
+    if(a==="portal"||a==="pack")btn.disabled=!!battle||gameOver;
     if(travelBusy)btn.disabled=true;
     btn.classList.toggle("active",a==="move"&&moveMode);
   });
@@ -668,7 +696,7 @@ function render(){
 function regionTap(name){
   if(travelBusy)return;
   if(gameOver||players[active].ko||$("overlay").classList.contains("open"))return;
-  if(!moveMode){toast("Tap MOVE or your Explorer ability first, then choose a connected region.");return;}
+  if(!moveMode){if(name==="Centre"){offerPortal();return;}toast("Tap MOVE or your Explorer ability first, then choose a connected region.");return;}
   const p=players[active];
   if(name==="Centre"&&!centreUnlocked){toast("Find all 3 Teleporter parts to unlock the Centre.");return;}
   if(!regions[p.loc].adj.includes(name)){toast(name+" is not connected to "+p.loc+".");return;}
@@ -678,7 +706,7 @@ function regionTap(name){
   if(explorerSteps>0)explorerSteps--;
   moveMode=explorerSteps>0;
   toast(p.role+" moved to "+name+(moveMode?". Choose one more connected region, or tap CANCEL MOVE.":"."));
-  if(name==="Centre"&&!teleporter){explorerSteps=0;moveMode=false;offerPortal();}
+  if(name==="Centre"){explorerSteps=0;moveMode=false;offerPortal();}
   render();
 }
 function abilityHelp(){return roleInfo[players[active].role].ability;}
@@ -687,7 +715,7 @@ function showIntro(page=0,replay=false){
   const scenes=[
     {title:"The Lost Helicopter Journal",copy:"Your helicopter is down. Ahead lies a strange island: scorching sand, frozen peaks, tangled forest, and a cave full of secrets. Together, four survivors step onto the beach.",foot:"A cooperative island adventure"},
     {title:"Four survivors. One team.",copy:"Choose who will play the Explorer, Hunter, Builder, and Medic. Share the device and pass it when the next player’s turn appears. Each character gets 3 actions and can use their special ability once per turn, even when one person controls several characters.",foot:"Explore · Gather · Craft · Help"},
-    {title:"Find a way home.",copy:"Search for the Power Core, Control Crystal, and Portal Ring. Find friends, gather supplies, and watch out for monsters. With all 3 parts, reach the Centre and build the Teleporter using 2 Gold, 2 Wood, and 1 String.",foot:"Once activated, get everyone to the Centre before the 3-round countdown ends."}
+    {title:"Find a way home.",copy:"Search for the Power Core, Control Crystal, and Portal Ring. Find friends, gather supplies, and watch out for monsters. With all 3 parts, reach the Centre and build the Teleporter using 2 Gold, 2 Wood, and 1 String.",foot:"Once activated, get everyone to the Centre within 3 rounds, then use PORTAL → ESCAPE TOGETHER."}
   ];
   const scene=scenes[page];
   $("overlay").classList.add("introOverlay");
@@ -705,7 +733,7 @@ function queueTurnAdvance(){
  turnAdvanceQueued=true;
  queueMicrotask(()=>{
   turnAdvanceQueued=false;
-  if(!saveEnabled||gameOver||actions>0||travelBusy||pendingExplore!==null||pendingCraft||explorerSteps>0||$("overlay").classList.contains("open"))return;
+  if(!saveEnabled||battle||gameOver||actions>0||travelBusy||pendingExplore!==null||pendingCraft||explorerSteps>0||$("overlay").classList.contains("open"))return;
   endTurn();
  });
 }
@@ -716,12 +744,14 @@ function showTurn(previousController=null){
  const handoff=party&&party.names.length===1?"Solo adventure":party&&previousController===party.owners[active]?"Keep the device":"Pass the device";
  showModal('<div class="turnArrival">'+portrait(p.role,'heroPortrait')+'</div><div class="turnBadge">'+handoff+' · Round '+round+'</div><h2 class="turnRole turnHuman">'+name+"'s turn!</h2>"+'<p class="turnCharacter">Playing the '+p.role+'</p><div class="turnOrder">'+players.map((player,i)=>'<span class="'+(i===active?'now':'')+'">'+player.role+'<small>'+controllerHTML(i)+'</small></span>').join('')+'</div><p class="guideCopy"><b>'+p.hp+' Hearts · '+p.loc+'</b><br>This character has <b>'+actions+' actions</b>.</p><p class="turnInstructions">'+abilityHelp()+'</p><p class="turnInstructions">'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'After 3 actions, the next character takes their turn.')+'</p><div class="turnStart"><button class="choice" id="startTurn">START '+p.role.toUpperCase()+"'S TURN"+'</button></div>',false);
  $("modal").style.setProperty("--turn-colour",playerColours[active]);
- $("startTurn").addEventListener("click",()=>{closeModal();render();});
+ $("startTurn").addEventListener("click",beginJourneyTurn);
 }
 
 function handleAction(a){
-  if(travelBusy)return;
+  if(travelBusy||battle)return;
   if(gameOver || $("overlay").classList.contains("open"))return;
+  if(a==="portal"){offerPortal();return;}
+  if(a==="pack"){showPack();return;}
   if(a==="journal" || (a==="move"&&moveMode)){performAction(a);return;}
   if(a!=="end"&&(actions<=0||players[active].ko))return;
   if(a==="ability"&&players[active].abilityUsed)return;
@@ -763,14 +793,14 @@ const exploration=[
   ["Ice Crystals",()=>gain("Ice",2)],
   ["Supply Crate",()=>gain(["Gold","Wood","String","Food","Ice"][Math.floor(Math.random()*5)],2)],
   ["Kitty",()=>friend("Kitty")],["Fred",()=>friend("Fred")],["Bla Bla",()=>friend("Bla Bla")],
-  ["Wall of Eyes",()=>{monsters.Eyes=players[active].loc;discoveries.add("Wall of Eyes");toast("The Wall of Eyes appears!")}],
-  ["Evil Kitty",()=>{monsters.EvilKitty=players[active].loc;discoveries.add("Evil Kitty");toast("Evil Kitty is loose!")}],
+  ["Wall of Eyes",()=>startBattle("Eyes")],
+  ["Evil Kitty",()=>startBattle("EvilKitty")],
   ["Power Core",()=>part("Core")],["Control Crystal",()=>part("Crystal")],["Portal Ring",()=>part("Ring")],
   ["Quiet Clearing",()=>heal(active,1)],["Broken Helicopter",()=>gain("Gold",1)]
 ];
 function doExplore(){
  if(!spendAction())return;
- pendingExplore=Math.floor(Math.random()*exploration.length);
+ pendingExplore=rollExploration();
  discoveries.add(exploration[pendingExplore][0]);
  revealExploration();render();
 }
@@ -797,7 +827,7 @@ function part(name){
 const recipes=[
   {name:"Tool",cost:{Wood:1,String:1},desc:"Your next Gather gives +1 resource."},
   {name:"Armour",cost:{Gold:1,Wood:1},desc:"Automatically blocks the next monster damage."},
-  {name:"Healing Kit",cost:{Food:1,String:1},desc:"Immediately heal 2 Hearts."}
+  {name:"Healing Kit",cost:{Food:1,String:1},desc:"Store in the pack. Heal or revive a teammate for 3 Hearts."}
 ];
 function showCraft(special=false){
   pendingCraft=special&&builderCrafts===1;
@@ -828,8 +858,7 @@ function make(i,special=false){
   }else if(!spendAction())return;
   Object.entries(r.cost).forEach(([k,v])=>res[k]-=v);
   inventory[r.name]++;discoveries.add(r.name);closeModal();
-  if(r.name==="Healing Kit"){inventory[r.name]--;heal(active,2);}
-  else {toast(r.name+" crafted.");visualGain(r.name+" crafted",active);burst("✦");}
+  toast(r.name+" crafted and stored in the pack.");visualGain(r.name+" crafted",active);burst("✦");
   render();
   if(special&&builderCrafts===1)showCraft(true);
 }
@@ -875,18 +904,6 @@ function doHelp(){
   else heal(t.i,1);
   render();
 }
-function offerPortal(){
-  if(!allParts()||teleporter)return;
-  const can=res.Gold>=2&&res.Wood>=2&&res.String>=1;
-  showModal(`<h2>The Teleporter</h2><p>You have all 3 parts.</p><p>Build cost: <b>2 Gold + 2 Wood + 1 String</b></p>
-    <button class="choice" id="buildPortal" ${can?"":"disabled"}>${can?"BUILD & ACTIVATE":"NOT ENOUGH RESOURCES"}</button>
-    <button class="choice alt" id="laterPortal">Later</button>`);
-  $("laterPortal").addEventListener("click",closeModal);
-  if(can)$("buildPortal").addEventListener("click",()=>{
-    res.Gold-=2;res.Wood-=2;res.String-=1;teleporter=true;finalRounds=3;discoveries.add("Teleporter Activated");
-    closeModal();toast("THE TELEPORTER IS ACTIVE! Survive 3 rounds.");render();
-  });
-}
 function monsterDamage(i,n=1){
   if(inventory.Armour>0){inventory.Armour--;toast("Armour blocked the monster hit!");return;}
   players[i].hp=Math.max(0,players[i].hp-n);
@@ -899,23 +916,12 @@ function islandPhase(){
   else if(roll<.5){res.Food++;toast("Supply wash-up: +1 Food.");}
   else if(roll<.7){toast("Calm weather. Nothing happens.");}
 
-  if(monsters.Eyes){
-    players.forEach((p,i)=>{
-      if(p.loc===monsters.Eyes){eyeMarks[i]++; if(eyeMarks[i]>=3&&!monsters.Watcher){monsters.Watcher=monsters.Eyes;discoveries.add("The One Who Watches");eyeMarks[i]=0;toast("THE ONE WHO WATCHES awakens!");}}
-    });
-  }
-  if(monsters.EvilKitty&&res.Food>0){res.Food--;toast("Evil Kitty stole 1 Food!");}
-  if(monsters.Watcher){
-    let candidates=players.map((p,i)=>({p,i})).filter(x=>!x.p.ko);
-    if(candidates.length){
-      let target=candidates.sort((a,b)=>b.p.hp-a.p.hp)[0];
-      monsters.Watcher=target.p.loc;monsterDamage(target.i,1);
-    }
-  }
   if(players.every(p=>p.ko)) lose("The whole team was Knocked Out.");
 }
 function endTurn(){
-  if(gameOver)return;
+  if(gameOver||battle)return;
+  if(teleporter&&everyoneAtPortal()){win();return;}
+  if(players.every(p=>p.ko)){lose("The whole team was knocked out.");return;}
   const previousController=party?party.owners[active]:null;
   moveMode=false;
   active++;
@@ -957,16 +963,17 @@ function showModal(html,dismissible=true){
   queueSave();
   modalReturnFocus=document.activeElement;modalDismissible=dismissible;
   $("modal").innerHTML=html;
+  $("modal").classList.toggle("wideModal",html.includes("battleTeam")||html.includes("endingTeam"));
   const heading=$("modal").querySelector("h2");
   if(heading){heading.id="modalTitle";$("modal").setAttribute("aria-labelledby","modalTitle");}
   else $("modal").removeAttribute("aria-labelledby");
-  $("overlay").classList.add("open");$("game").inert=true;$("modal").scrollTop=0;$("modal").focus({preventScroll:true});
+  document.documentElement.classList.add("modalOpen");$("overlay").classList.add("open");$("game").inert=true;$("modal").scrollTop=0;$("modal").focus({preventScroll:true});
 }
 function closeModal(){
   queueTurnAdvance();
   if($("closeCraft"))pendingCraft=false;
   queueSave();
-  $("overlay").classList.remove("open");$("game").inert=false;
+  document.documentElement.classList.remove("modalOpen");$("overlay").classList.remove("open");$("game").inert=false;
   if(modalReturnFocus&&modalReturnFocus.isConnected)modalReturnFocus.focus();
 }
 document.addEventListener("keydown",e=>{
@@ -980,9 +987,12 @@ document.addEventListener("keydown",e=>{
     else if(!e.shiftKey&&(document.activeElement===last||document.activeElement===$("modal"))){e.preventDefault();first.focus();}
   }
 });
-function win(){gameOver=true;outcome="won";showModal(`<h2>YOU ESCAPED!</h2><p>Everyone reached the Teleporter together.</p><p><b>The Journal remembers your adventure.</b></p><button class="choice" id="restart">PLAY AGAIN</button>`);$("restart").addEventListener("click",()=>{saveEnabled=false;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();});}
 function lose(reason){gameOver=true;outcome="lost";showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>{saveEnabled=false;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();});}
 
+</script>
+<script src="gameplay-v020.js"></script>
+<script>
+initCombatContent();
 $("turn").addEventListener("click",()=>showPlayer(active));
 document.querySelectorAll(".action").forEach(btn=>btn.addEventListener("click",()=>handleAction(btn.dataset.action)));
 $("overlay").addEventListener("click",e=>{if(e.target===$("overlay")&&modalDismissible)closeModal();});
