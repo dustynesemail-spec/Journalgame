@@ -1,8 +1,13 @@
-# The Lost Helicopter Journal — v0.1.9
+# The Lost Helicopter Journal — v0.1.10
 
 [Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.1.7)
 
-A cooperative island adventure for four players sharing one phone, tablet, or computer.
+A cooperative island adventure for 1–4 people sharing one phone, tablet, or computer. All four characters are always in play.
+
+## Named multiplayer setup
+Choose 1, 2, 3, or 4 people, enter names, and assign all four characters. Defaults split characters evenly; assignments can be changed. Every person must control at least one character. Each character keeps its own three-action turn and once-per-turn ability.
+
+Names appear on character tiles, cards, and turn announcements. Consecutive characters controlled by the same person show Keep the device. Use Journal → Players & Character Assignments to make changes without restarting. Names and ownership are saved locally; older saves ask for setup and retain their progress. This is shared-device pass-and-play, not network multiplayer.
 
 ## Island circuit and exploration
 The outer route is Beach ↔ Forest ↔ Cave ↔ Ice ↔ Desert ↔ Beach. Both directions work; the Centre remains locked until all parts are found. Visible trails and large destination buttons show legal moves.
