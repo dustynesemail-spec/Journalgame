@@ -1,12 +1,18 @@
-# The Lost Helicopter Journal — v0.2.1
+# The Lost Helicopter Journal — v0.2.2
 
 [Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.2.1-play)
 
 A cooperative adventure for 1–4 named people sharing a phone, tablet, or computer. All four characters participate; this is pass-and-play, not online multiplayer.
 
-## More active villains
+## Short battles and victory rewards
 
-Each eligible character turn outside the Centre has a 65% encounter chance. After one quiet eligible turn, the next encounter is guaranteed. Reloading never rerolls a checked turn. Journey battles feature minions; main villains appear only after opening the portal.
+All minions and portal bosses now start with **8 skill points (health)**, without later-round health scaling. Existing unfinished battles scale down to the new cap when resumed. Attacks retain their damage and villains keep their unique skills, including healing and shields.
+
+Every new battle win unlocks **three reward choices**. Pick one free item before continuing. Choices and claimed rewards are saved so refreshing cannot reroll or duplicate rewards. This choice replaces the previous random regional bonus; standard Gold, Food, Healing Kit, and ammunition loot still applies. Portal victories also retain their healing and ammo bonuses. Older already-won battles keep their previously granted loot without a second unlock.
+
+## Villain encounters
+
+Each eligible character turn outside the Centre has a 55% encounter chance. After four consecutive quiet eligible turns, the fifth eligible turn guarantees an encounter. Ineligible turns at the Centre or while knocked out do not advance the counter. Reloading never rerolls a checked turn. Journey battles feature minions; main villains appear only after opening the portal.
 
 Enemies respond after **two character combat actions**, or sooner if no standing character remains to act. A dedicated **villain fights back** screen describes the skill, damage, blocks, and status changes. Select **Continue Team Turns** when everyone has read it. The response is saved, so reloading does not repeat damage.
 
@@ -22,7 +28,7 @@ Each standing character acts once per battle round. The whole team helps regardl
 
 ## Regional loot and Harvest
 
-Every Explore outside the Centre adds a regional supply bundle and 1 Food alongside its main discovery. The first exploration in a weapon’s home region finds that missing weapon. Missing portal parts receive priority every third search after any guaranteed weapon discovery. Minion victories award 1 Gold, 2 Food, 1 Healing Kit, 3 ammo for the journey character’s weapon, and a useful regional item.
+Every Explore outside the Centre adds a regional supply bundle and 1 Food alongside its main discovery. The first exploration in a weapon’s home region finds that missing weapon. Missing portal parts receive priority every third search after any guaranteed weapon discovery. Minion victories award 1 Gold, 2 Food, 1 Healing Kit, 3 ammo for the journey character’s weapon, and a choice of one unlocked item.
 
 Normal **Gather** randomly selects one regional bundle. The **Hunter’s HARVEST ability** lets you choose a bundle and collects it twice, for 1 journey action, once per turn. A Tool adds one extra bundle. Cancelling spends nothing.
 
@@ -82,8 +88,8 @@ Choose 1–4 names and assign all four characters. Change assignments in Journal
 
 One adventure saves in the same browser/device. Continue Adventure preserves items, encounters, enemy responses, and guardian progress. Older saves are supported: a main villain in an old journey battle becomes its minion counterpart while keeping combat progress. An already-completed ending stays completed. Clearing browser data removes the save. Friends remain companions without separate health or usable abilities.
 
-Open the Play link in Safari; local HTML previews may not run the game. Reduced-motion controls are available. Serve index.html, gameplay-v021.js, and assets/ together. GitHub Pages publishes main from the repository root; no build process is required. Older versioned scripts may remain for cached pages.
+Open the Play link in Safari; local HTML previews may not run the game. Reduced-motion controls are available. Serve index.html, gameplay-v022.js, and assets/ together. GitHub Pages publishes main from the repository root; no build process is required. Older versioned scripts may remain for cached pages.
 
 ## Verification
 
-17 automated checks cover encounter frequency, every villain skill, enemy response timing, items, Harvest limits, regional loot, save migration, duplicate-action protection, and a complete three-guardian victory. Browser checks exercised enemy responses and reload, the battle item bag, Fire Flask use, chosen Harvest rewards, and portal activation on the last action. Balance remains open to playtesting.
+Automated checks cover the eight-point cap and save migration, the 55% boundary, four quiet turns followed by a guaranteed encounter, reward choices and duplicate prevention, and the complete portal finale. Browser checks cover victory reward selection and persistence.

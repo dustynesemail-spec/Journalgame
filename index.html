@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.2.1</title>
+<title>The Lost Helicopter Journal v0.2.2</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -296,7 +296,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.2.1 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.2.2 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -977,7 +977,7 @@ document.addEventListener("keydown",e=>{
 function lose(reason){gameOver=true;outcome="lost";showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>{saveEnabled=false;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();});}
 
 </script>
-<script src="gameplay-v021.js"></script>
+<script src="gameplay-v022.js"></script>
 <script>
 initCombatContent();
 $("turn").addEventListener("click",()=>showPlayer(active));
