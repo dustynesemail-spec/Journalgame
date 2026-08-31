@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.8</title>
+<title>The Lost Helicopter Journal v0.1.9</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -219,13 +219,40 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 @media(prefers-reduced-motion:reduce){.turnArrival .heroPortrait,.mapPawn.active .pawnArt{animation:none!important}}
 @media(max-height:650px){.turnArrival .heroPortrait{height:75px;width:75px}.turnRole{font-size:28px}.turnOrder{margin:5px 0}.turnInstructions{font-size:12px}.turnStart{bottom:-14px}.turnArrival{margin-bottom:4px}}
 
+
+/* The visible outer trail matches the movement graph. */
+.islandRoutes{position:absolute;inset:0;width:100%;height:100%;z-index:1;overflow:visible;pointer-events:none}
+.islandRoutes path{fill:none;stroke:#f7ecc5;stroke-width:1.5;stroke-linecap:round;stroke-dasharray:2 1.5;filter:drop-shadow(0 1px 1px #203c2b)}
+.islandRoutes .centreRoute{stroke:#e8dbb9;stroke-width:.7;opacity:.35}
+.islandRoutes .routeOpen{stroke:#a7ffd0;stroke-width:2.2;opacity:1}
+#map .region.reachable{z-index:12}
+#map.moving .mapPawn{pointer-events:none}
+.moveChoices{display:flex;justify-content:center;gap:5px;margin-top:4px}
+.moveChoices button{min-height:40px;flex:1;max-width:160px;border:2px solid #28684c;border-radius:8px;background:#f6fff0;color:#174330;font-size:12px;font-weight:bold;padding:5px;cursor:pointer}
+.exploreScene{position:relative;isolation:isolate;height:clamp(180px,32dvh,290px);overflow:hidden;border:3px solid #ac8a46;border-radius:13px;background:#287987;margin-bottom:10px}
+.terrainDetail{position:absolute;width:100%;height:auto;left:50%;top:50%;max-width:none;transform-origin:var(--scene-x) var(--scene-y);animation:terrainDive 1.3s cubic-bezier(.2,.65,.25,1) both}
+@keyframes terrainDive{from{transform:translate(-50%,-50%) scale(1)}to{transform:translate(calc(0% - var(--scene-x)),calc(0% - var(--scene-y))) scale(2.5)}}
+.terrainShade{position:absolute;inset:0;background:linear-gradient(#061d3330,transparent 35%,#062b4570);pointer-events:none}
+.terrainCaption{position:absolute;top:8px;left:8px;background:#123b45df;color:#fff3d6;border-radius:9px;font-size:12px;font-weight:bold;padding:6px 9px}
+.rewardPop{position:absolute;left:50%;top:55%;width:108px;height:108px;border:4px solid #fff0ab;border-radius:24px;background:radial-gradient(#fffdf0,#f5ce6c);box-shadow:0 0 35px #ffe495ab,0 8px 16px #001e3377;display:flex;align-items:center;justify-content:center;font-size:64px;animation:rewardSpring .85s .65s cubic-bezier(.2,.8,.2,1) both}
+.rewardPop img{width:96px;height:96px;object-fit:contain;animation:none}
+@keyframes rewardSpring{0%{opacity:0;transform:translate(-50%,70%) scale(.15) rotate(-18deg)}55%{opacity:1;transform:translate(-50%,-75%) scale(1.18) rotate(7deg)}78%{transform:translate(-50%,-42%) scale(.96) rotate(-3deg)}100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}}
+.rewardSparkle{position:absolute;left:50%;top:55%;color:#fff4a5;font-size:25px;animation:rewardGlitter 1.15s .75s ease-out both;pointer-events:none}
+@keyframes rewardGlitter{0%{opacity:0;transform:translate(-50%,-50%) scale(.1)}25%{opacity:1}100%{opacity:0;transform:translate(var(--spark-x),var(--spark-y)) scale(1.2)}}
+.discoveryCopy{font-size:16px;line-height:1.45}
+.exploreActions{position:sticky;bottom:-14px;background:var(--paper2);padding:3px 0;z-index:3}
+.reduceMotion .terrainDetail{animation:none;transform:translate(calc(0% - var(--scene-x)),calc(0% - var(--scene-y))) scale(2.5)}
+.reduceMotion .rewardPop{animation:none;transform:translate(-50%,-50%)}.reduceMotion .rewardSparkle{display:none}
+@media(prefers-reduced-motion:reduce){.terrainDetail{animation:none;transform:translate(calc(0% - var(--scene-x)),calc(0% - var(--scene-y))) scale(2.5)}.rewardPop{animation:none;transform:translate(-50%,-50%)}.rewardSparkle{display:none}}
+@media(orientation:landscape) and (max-height:550px){#moveGuide{font-size:10px;padding:3px}.moveChoices{margin-top:2px}.moveChoices button{min-height:32px;padding:3px}.exploreCut{display:grid;grid-template-columns:48% 1fr;gap:12px;align-items:center}.exploreScene{height:230px;margin:0}.discoveryCopy{font-size:14px}.exploreActions{position:static}}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.8 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.9 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -264,11 +291,11 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 <script>
 "use strict";
 const regions={
-  Beach:{res:"Food",adj:["Forest","Centre"]},
-  Forest:{res:"Wood",adj:["Beach","Desert","Centre"]},
-  Desert:{res:"Gold",adj:["Forest","Ice","Centre"]},
+  Beach:{res:"Food",adj:["Forest","Desert","Centre"]},
+  Forest:{res:"Wood",adj:["Beach","Cave","Centre"]},
+  Desert:{res:"Gold",adj:["Ice","Beach","Centre"]},
   Ice:{res:"Ice",adj:["Desert","Cave","Centre"]},
-  Cave:{res:"String",adj:["Ice","Centre"]},
+  Cave:{res:"String",adj:["Forest","Ice","Centre"]},
   Centre:{res:null,adj:["Beach","Forest","Desert","Ice","Cave"]}
 };
 const roleNames=["Explorer","Hunter","Builder","Medic"];
@@ -417,11 +444,55 @@ function flyReward(symbol,i,target){
   el.style.setProperty("--dy",(to.y+to.height/2-from.y-from.height/2)+"px");
   document.body.appendChild(el);setTimeout(()=>el.remove(),900);
 }
+
+const outerCircuit=["Beach","Forest","Cave","Ice","Desert"];
+function drawRoutes(){
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+ svg.setAttribute("viewBox","0 0 100 100");svg.setAttribute("class","islandRoutes");svg.setAttribute("aria-hidden","true");
+ const pairs=outerCircuit.map((name,i)=>[name,outerCircuit[(i+1)%outerCircuit.length]]);
+ pairs.push(...outerCircuit.map(name=>[name,"Centre"]));
+ pairs.forEach(([from,to])=>{
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path"),a=artPositions[from],b=artPositions[to];
+  path.setAttribute("d","M "+a.join(" ")+" L "+b.join(" "));path.dataset.from=from;path.dataset.to=to;
+  if(to==="Centre")path.classList.add("centreRoute");svg.appendChild(path);
+ });
+ return svg;
+}
+function renderMoveGuide(){
+ const guide=$("moveGuide"),p=players[active];
+ guide.classList.toggle("visible",moveMode);
+ if(!moveMode){guide.innerHTML="";return;}
+ const choices=regions[p.loc].adj.filter(name=>name!=="Centre"||centreUnlocked);
+ guide.innerHTML='<div>From <b>'+p.loc+'</b> · '+(explorerSteps===1?'1 free move remaining':explorerSteps===2?'2 moves for 1 action':'1 action per move')+'</div><div class="moveChoices">'+choices.map(name=>'<button type="button" data-destination="'+name+'">GO TO '+name.toUpperCase()+'</button>').join('')+'</div>';
+ guide.querySelectorAll("button").forEach(button=>{button.disabled=travelBusy;button.addEventListener("click",()=>regionTap(button.dataset.destination));});
+}
+const discoveryPresentation=[
+ ["🪵","+2 Wood","Useful wood for crafting tools and building the Teleporter.","COLLECT REWARD"],
+ ["🪙","+1 Gold","A golden glint catches your eye.","COLLECT REWARD"],
+ ["🧵","+2 String","Strong string, ready for the team's next project.","COLLECT REWARD"],
+ ["🫐","+2 Food","Fresh berries for your shared supplies.","COLLECT REWARD"],
+ ["💎","+2 Ice","Cold crystals sparkle in the light.","COLLECT REWARD"],
+ ["📦","+2 materials","Open the crate to discover which material is inside.","OPEN CRATE"],
+ ["Kitty","A new companion","A friendly calico cat steps out to greet you.","MEET KITTY"],
+ ["🎨","A new companion","Fred is ready to meet the team.","MEET FRED"],
+ ["💜","A new companion","Bla Bla has found your team.","MEET BLA BLA"],
+ ["👁","Something is watching","A Wall of Eyes appears in this region. Stay alert.","FACE DISCOVERY"],
+ ["🐈","Trouble on the island","Evil Kitty is loose and hungry for your supplies.","FACE DISCOVERY"],
+ ["⚡","Teleporter part","You found the Power Core!","COLLECT PART"],
+ ["🔮","Teleporter part","You found the Control Crystal!","COLLECT PART"],
+ ["⭕","Teleporter part","You found the Portal Ring!","COLLECT PART"],
+ ["♥","Restore up to 1 Heart","A peaceful clearing offers a moment to recover.","REST HERE"],
+ ["🚁","+1 Gold","Salvage something useful from the wreckage.","COLLECT REWARD"]
+];
 function revealExploration(){
-  const [name,effect]=exploration[pendingExplore];
-  const icon=name==="Kitty"?friendArt("Kitty",true):'<div class="discoveryArt" aria-hidden="true">'+(name.includes("Kitty")||name==="Wall of Eyes"?'👁':["Power Core","Control Crystal","Portal Ring"].includes(name)?'✨':'📖')+'</div>';
-  showModal(icon+'<h2>Exploration</h2><p><b>'+name+'</b></p><p>You discovered something on the island.</p><button class="choice" id="resolveExplore">RESOLVE</button>',false);
-  $("resolveExplore").addEventListener("click",()=>{if(pendingExplore===null)return;pendingExplore=null;closeModal();effect();render();});
+ const index=pendingExplore,[name,effect]=exploration[index],info=discoveryPresentation[index],loc=players[active].loc;
+ const pos=artPositions[loc],symbol=info[0]==="Kitty"?friendArt("Kitty",true):info[0];
+ const stars=Array.from({length:8},(_,i)=>'<span class="rewardSparkle" aria-hidden="true" style="--spark-x:'+Math.round(Math.cos(i*Math.PI/4)*115)+'px;--spark-y:'+Math.round(Math.sin(i*Math.PI/4)*95)+'px">✦</span>').join('');
+ showModal('<div class="exploreCut"><div class="exploreScene" style="--scene-x:'+pos[0]+'%;--scene-y:'+pos[1]+'%"><img class="terrainDetail" src="assets/island-v015.png" alt="Close-up of the '+loc+' terrain"><div class="terrainShade"></div><div class="terrainCaption">EXPLORING '+loc.toUpperCase()+'</div><div class="rewardPop" aria-hidden="true">'+symbol+'</div>'+stars+'</div><div><h2>'+name+'</h2><p class="discoveryCopy"><b>'+info[1]+'</b></p><p class="discoveryCopy">'+info[2]+'</p><div class="exploreActions"><button class="choice" id="resolveExplore">'+info[3]+'</button><small>Tap when ready. The animation never blocks this button.</small></div></div></div>',false);
+ $("resolveExplore").addEventListener("click",()=>{
+  if(pendingExplore!==index)return;
+  pendingExplore=null;closeModal();effect();render();
+ });
 }
 
 function portrait(role,cls){return '<img class="'+cls+'" src="assets/'+role.toLowerCase()+'-v015.png" alt="" decoding="async">';}
@@ -436,6 +507,7 @@ function renderBoard(){
   if(!board.dataset.ready){
     board.dataset.ready="true";
     board.innerHTML='<img class="islandArt" src="assets/island-v015.png" alt="Illustrated island: desert northwest, ice northeast, cave east, forest south, beach southwest, and the mysterious centre."><div class="scenery" aria-hidden="true"><i class="cloud"></i><i class="cloud second"></i><i class="wave"></i><i class="wave second"></i><i class="snow"></i></div><div class="portalHalo" aria-hidden="true"></div><div id="mapFallback" hidden>Artwork could not load. Region buttons still work.</div>';
+    board.appendChild(drawRoutes());
     board.querySelector(".islandArt").addEventListener("error",()=>{$("mapFallback").hidden=false;});
     Object.keys(regions).forEach(name=>{
       const b=document.createElement("button");b.type="button";b.id="region"+name;b.className="region "+name;
@@ -467,6 +539,8 @@ function renderBoard(){
     const pin=$("monster"+key);pin.hidden=!loc;
     if(loc){pin.style.left=artPositions[loc][0]+"%";pin.style.top=(artPositions[loc][1]-10-i*3)+"%";pin.textContent=key==="Eyes"?"👁 Wall of Eyes":key==="Watcher"?"👁 Watcher":"🐈 Evil Kitty";}
   });
+  board.classList.toggle("moving",moveMode);
+  board.querySelectorAll(".islandRoutes path").forEach(path=>{const {from,to}=path.dataset;path.classList.toggle("routeOpen",moveMode&&(from===players[active].loc||to===players[active].loc)&&(to!=="Centre"||centreUnlocked));});
   board.classList.toggle("portalActive",teleporter);board.setAttribute("aria-busy",String(travelBusy));
   document.documentElement.classList.toggle("reduceMotion",reduceMotion);
   $("motionToggle").textContent=reduceMotion?"Motion: reduced":"Motion: on";
@@ -509,8 +583,7 @@ function render(){
     ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Everyone to Centre`
     : `<b>Mission:</b> Find Teleporter Parts<br>${partText}<br><small>Supplies: G${res.Gold} W${res.Wood} S${res.String} F${res.Food} I${res.Ice}</small>`;
 
-  $("moveGuide").textContent=moveMode ? players[active].role+(explorerSteps>0?": "+explorerSteps+" connected move"+(explorerSteps===1?"":"s")+" left. "+(explorerSteps===1?"No extra action cost.":"Costs 1 action for both."):" : tap a region marked MOVE. Cost: 1 action.")+" Tap CANCEL MOVE to stop." : "";
-  $("moveGuide").classList.toggle("visible",moveMode);
+  renderMoveGuide();
   renderBoard();
 
   document.querySelectorAll(".action").forEach(btn=>{
@@ -530,7 +603,7 @@ function render(){
 }
 function regionTap(name){
   if(travelBusy)return;
-  if(gameOver||players[active].ko)return;
+  if(gameOver||players[active].ko||$("overlay").classList.contains("open"))return;
   if(!moveMode){toast("Tap MOVE or your Explorer ability first, then choose a connected region.");return;}
   const p=players[active];
   if(name==="Centre"&&!centreUnlocked){toast("Find all 3 Teleporter parts to unlock the Centre.");return;}
