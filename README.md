@@ -1,68 +1,89 @@
-# The Lost Helicopter Journal — v0.2.0
+# The Lost Helicopter Journal — v0.2.1
 
-[Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.2.0-ready)
+[Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.2.1-play)
 
-A cooperative island adventure for 1–4 named people sharing one phone, tablet, or computer. All four characters are always in play. This is shared-device pass-and-play, not online multiplayer.
+A cooperative adventure for 1–4 named people sharing a phone, tablet, or computer. All four characters participate; this is pass-and-play, not online multiplayer.
 
-## Complete the story
+## More active villains
 
-The permanent **PORTAL** button shows captured parts and missing supplies. With all three parts, a standing character at the Centre can build the portal for **1 action, 2 Gold, 2 Wood, and 1 String**. Once all four survivors are standing at the Centre, select **ESCAPE TOGETHER** immediately—even with zero actions left. No waiting for another round is needed. If others are still travelling, they have three journey rounds to join the team.
+Each eligible character turn outside the Centre has a 65% encounter chance. After one quiet eligible turn, the next encounter is guaranteed. Reloading never rerolls a checked turn. Journey battles feature minions; main villains appear only after opening the portal.
 
-Existing saves at the Centre can reopen the portal panel. The ending includes the whole team and their recruited friends, and the completed story is saved.
+Enemies respond after **two character combat actions**, or sooner if no standing character remains to act. A dedicated **villain fights back** screen describes the skill, damage, blocks, and status changes. Select **Continue Team Turns** when everyone has read it. The response is saved, so reloading does not repeat damage.
 
-## Team battles
+| Journey minion | Master | Skill |
+| --- | --- | --- |
+| Scratchling | Evil Kitty | Double Scratch: two hits for 1 each |
+| Sand Prowler | Evil Kitty | Sand Pounce: 2 damage, ignores 1 Guard |
+| Little Gazer | Wall of Eyes | Leeching Glance: 1 damage, restores 2 enemy Hearts |
+| Frost Wisp | Wall of Eyes | Ice Shell: 1 damage, then shields itself against 2 damage |
+| Watcher Mite | The One Who Watches | Withering Whisper: 1 damage and Weakness; target’s next attack -1 |
 
-At the start of each character's journey turn outside the Centre, there is a 25% chance of meeting an enemy. Exploration can also reveal an enemy. Reloading does not reroll the same turn. Evil Kitty, the Wall of Eyes, and the One Who Watches have different health and damage; the Watcher joins random encounters from journey round four.
+Each standing character acts once per battle round. The whole team helps regardless of map position. Journey actions, positions, and the portal countdown pause during battles. Basic attacks need no weapon or ammo. Guard, Armour, healing, and consumables help counter enemy skills.
 
-All four characters join a separate battle screen regardless of map location. Each standing character takes one combat action, then the enemy attacks its announced target. Map positions and journey actions stay unchanged during combat. Knocked-out characters skip their turns until revived.
+## Regional loot and Harvest
 
-- **Basic attack:** 2 damage, no weapon or ammunition required.
-- **Weapon attack:** uses 1 matching ammo and applies the character's weapon specialty.
-- **Guard:** block up to 2 damage from the next hit.
-- **Medic Care:** heal or revive a teammate by up to 3 Hearts; uses the Medic's combat action.
-- Defeating an enemy awards 1 Gold, 1 Food, and 2 ammo for the character whose journey turn started the battle. Loot is awarded once, including after a reload.
+Every Explore outside the Centre adds a regional supply bundle and 1 Food alongside its main discovery. The first exploration in a weapon’s home region finds that missing weapon. Missing portal parts receive priority every third search after any guaranteed weapon discovery. Minion victories award 1 Gold, 2 Food, 1 Healing Kit, 3 ammo for the journey character’s weapon, and a useful regional item.
 
-## Find character weapons
+Normal **Gather** randomly selects one regional bundle. The **Hunter’s HARVEST ability** lets you choose a bundle and collects it twice, for 1 journey action, once per turn. A Tool adds one extra bundle. Cancelling spends nothing.
 
-The first exploration in each listed region guarantees its missing weapon. Anyone can find it; it goes to the matching character and includes 3 ammo. Further exploration can uncover ammo caches, equipment, or supplies.
+| Region | Available bundles |
+| --- | --- |
+| Beach | Food ×2, String ×1, Medicinal Herbs, Smoke Bomb, Ammo Pouch |
+| Forest | Wood ×2, Food ×2, Arrows ×3, Medicinal Herbs, Antidote |
+| Desert | Gold ×2, Stones ×3, Shock Bomb, Fire Flask, Armour |
+| Cave | String ×2, Bolts ×3, Shield Pack, Tool, Ammo Pouch |
+| Ice | Ice ×2, Cells ×3, Healing Kit, Shield Pack, Smoke Bomb |
 
-| Character | Weapon | Find in | Ammo | Specialty |
+Equipment bundles contain one item. Harvest doubles the listed amount; for example, choose 6 Cells or 2 Healing Kits in Ice. There is no harvesting at the Centre.
+
+## Inventory and items
+
+**PACK** has Items, Weapons, and Region Loot tabs. Owned equipment shows its quantity, effect, and a labeled Use button. **ITEM BAG** opens the same owned equipment during a character’s combat turn. Supplies and equipment are shared.
+
+- Healing Kit: heal or revive up to 3 Hearts.
+- Medicinal Herbs: heal a standing survivor by up to 2 Hearts.
+- Antidote: remove Weakness and heal 1 Heart; cannot revive.
+- Shock Bomb: 5 damage.
+- Fire Flask: 3 damage, then 2 burn damage before each of the next two enemy responses.
+- Smoke Bomb: cancel the next whole enemy response.
+- Shield Pack: give a survivor 4 Guard against the next hit.
+- Ammo Pouch: add 2 of every ammunition.
+- Armour: automatically block one hit after Guard; a second claw can still land.
+- Tool: automatically add one bundle to the next Gather or Harvest.
+
+Using an item costs one combat action. Outside battle, healing and ammo pouches cost one journey action; healing targets must share the active character’s region. Battle-only items are clearly marked. Food can restore 1 Heart during combat. The Medic can use Care to heal or revive by 3 instead of attacking.
+
+## Character weapons
+
+| Character | Weapon | Region | Ammo | Effect |
 | --- | --- | --- | --- | --- |
-| Explorer | Trailbow | Forest | Arrows | 3 damage; mark the enemy for +1 on the next attack |
+| Explorer | Trailbow | Forest | Arrows | 3 damage; mark for +1 on the next attack |
 | Hunter | Heavy Slingshot | Desert | Stones | 4 damage |
-| Builder | Rivet Launcher | Cave | Bolts | 3 damage and gain 2 Guard |
+| Builder | Rivet Launcher | Cave | Bolts | 3 damage and 2 Guard |
 | Medic | Spark Staff | Ice | Cells | 2 damage and heal the most injured standing teammate by 1 |
 
-Open **PACK** or a character card to check weapons, ammo, and shared equipment.
+Discovering a weapon supplies 3 ammo and assigns it to its character, whoever found it. Shots consume 1 matching ammo.
 
-## Items and healing
+## Portal finale
 
-Healing Kits, Shock Bombs, Shield Packs, and ammunition can be found while exploring.
+Collect all three parts. At the Centre, **PORTAL → BUILD PORTAL** costs 1 action, 2 Gold, 2 Wood, and 1 String. Opening it immediately summons **Evil Kitty**. Defeat the guardians in order:
 
-- **Healing Kit:** heal or revive a teammate by up to 3 Hearts. Crafting stores the kit for later. Outside combat, using one costs 1 journey action and requires a teammate in the same region.
-- **Food:** restores 1 Heart during battle; cannot revive.
-- **Shock Bomb:** 5 damage; craft with 2 Gold and 1 Ice.
-- **Shield Pack:** give a standing teammate 4 Guard against the next hit; craft with 1 Wood and 1 Ice.
-- **Armour:** automatically blocks one enemy hit after Guard is applied.
+1. Evil Kitty — Royal Clawstorm: two hits for 2 each.
+2. Wall of Eyes — All-Seeing Drain: 1 damage to each standing survivor and restores 2 enemy Hearts.
+3. The One Who Watches — Unmaking: removes its target’s Guard, then deals 2 damage.
 
-Items and healing each use one combat action. New adventures start with one Healing Kit. Existing saves retain their supplies.
+After each guardian victory, the portal restores 2 Hearts to every survivor (including revival), adds 2 Healing Kits and 4 of each ammo, in addition to standard victory loot. Return to the portal panel to face the next guardian. Boss progress is saved and rewards cannot be claimed twice.
 
-## Journey and multiplayer
+After all guardians are defeated and all four survivors are standing at the Centre, **ESCAPE TOGETHER** completes the story without an extra action. Everyone still has three journey rounds to reach the Centre after activation; combat does not advance that countdown.
 
-Choose 1–4 people, enter names, and assign all four characters. Every person controls at least one character. Names appear on cards, turns, and battles. Consecutive characters controlled by the same person show **Keep the device**. Change assignments through **Journal → Players & Character Assignments** without restarting.
+## Saving, movement, and setup
 
-Each character has three journey actions and one special ability use per journey turn: Explorer travels up to two connected regions; Hunter gathers two materials; Builder crafts up to two items while paying both recipes; Medic restores up to three Hearts to someone in the same region. Pending second moves, second crafts, and discoveries finish before the automatic handoff.
+Choose 1–4 names and assign all four characters. Change assignments in Journal. Each character gets three journey actions and one special ability use. Explorer travels twice; Hunter chooses a double Harvest; Builder crafts twice while paying both recipes; Medic heals up to three Hearts. The outer circuit is Beach ↔ Forest ↔ Cave ↔ Ice ↔ Desert ↔ Beach.
 
-The outer route is Beach ↔ Forest ↔ Cave ↔ Ice ↔ Desert ↔ Beach, in both directions. The Centre unlocks after all three portal parts are found. Exploration includes terrain close-ups and reward reveals. Friends remain companions without separate health or powers.
+One adventure saves in the same browser/device. Continue Adventure preserves items, encounters, enemy responses, and guardian progress. Older saves are supported: a main villain in an old journey battle becomes its minion counterpart while keeping combat progress. An already-completed ending stays completed. Clearing browser data removes the save. Friends remain companions without separate health or usable abilities.
 
-## Saving and phones
+Open the Play link in Safari; local HTML previews may not run the game. Reduced-motion controls are available. Serve index.html, gameplay-v021.js, and assets/ together. GitHub Pages publishes main from the repository root; no build process is required. Older versioned scripts may remain for cached pages.
 
-Open the Play link in Safari or another browser; a downloaded HTML preview may not run the game. One adventure saves locally on the same browser and device. There is no account or cloud sync. Clearing site data removes the save; private browsing or blocked storage may prevent saving. Check save status in the Journal.
+## Verification
 
-Saves include character ownership, pending discoveries, special-ability steps, weapons, ammo, the current combat turn, victory rewards, and the ending. Older saves are supported. Use **Continue Adventure** after refreshing. Motion controls and system reduced-motion preferences are respected.
-
-## Files and verification
-
-Serve **index.html**, **gameplay-v020.js**, and the **assets/** folder together. GitHub Pages publishes from main at the repository root. No build process or external libraries are required. Island, character, and Kitty illustrations were generated with Imagegen; prompts are included in the downloadable project.
-
-Release checks cover portal construction, last-action escape, ending reload, timeout, weapon discovery, ammo, crafting, random encounters, battle order, healing/revival, shields, defeat, save migration, and duplicate-loot prevention. Browser playthroughs exercised a complete battle and both portal-ending paths. Combat balance is an initial version for playtesting.
+17 automated checks cover encounter frequency, every villain skill, enemy response timing, items, Harvest limits, regional loot, save migration, duplicate-action protection, and a complete three-guardian victory. Browser checks exercised enemy responses and reload, the battle item bag, Fire Flask use, chosen Harvest rewards, and portal activation on the last action. Balance remains open to playtesting.

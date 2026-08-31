@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.2.0</title>
+<title>The Lost Helicopter Journal v0.2.1</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -289,13 +289,14 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 @media(orientation:landscape) and (max-height:550px){.battleScreen{display:grid;grid-template-columns:.9fr 1.1fr;gap:14px}.battleEnemy{font-size:42px}.battleHeading h2{font-size:19px}.battleHero img{height:38px}.battleHero{font-size:10px}.battleScreen h3{margin:4px}.battleActions .choice{min-height:40px;font-size:11px}.battleScreen p{font-size:11px;margin:6px 0}.endingScene{height:90px}.endingPortal{font-size:60px;inset:5px}.endingTeam img{height:45px}}
 
 .modalOpen .scenery *,.modalOpen .mapPawn .pawnArt{animation-play-state:paused}
+.packGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;text-align:left}.itemCard{padding:10px;background:#efe2b9;border:2px solid #c1a15d;border-radius:12px;min-width:0}.itemCard b,.itemCard small{display:block}.itemCard small{font-size:12px;line-height:1.4;margin-top:5px}.itemCard .choice{font-size:12px}.enemyResponse{background:#572e50;color:#fff5d8;border:3px solid #e4a965;border-radius:14px;padding:14px}.enemyResponse h2{color:#ffe6a4}.enemyResponse p{font-size:17px;line-height:1.4}.packTabs{display:flex;gap:6px;position:sticky;top:-14px;background:var(--paper2);padding:5px 0;z-index:2}.packTabs button{flex:1}.bossProgress{padding:8px;background:#e5d3f0;border-radius:9px}.battleHero.weakened{border-style:dashed}.battleHint{overflow-wrap:anywhere}@media(max-width:420px){.packGrid{grid-template-columns:1fr}.battleHeading h2{font-size:21px}}
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.2.0 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.2.1 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -365,7 +366,7 @@ const friendInfo={
 const friendOwners={Kitty:null,Fred:null,"Bla Bla":null};
 const roleInfo={
   Explorer:{icon:"🧭",description:"Lead the way into new regions and search for discoveries.",ability:"TRAILBLAZE: once per turn, spend 1 action to move through up to two connected regions. Choose each step on the map. You may stop after one."},
-  Hunter:{icon:"🎒",description:"Collect supplies to help the whole team survive.",ability:"HUNT: once per turn, spend 1 action to gather 2 of the local material. A Tool adds 1 extra material and is used up. No gathering at the Centre."},
+  Hunter:{icon:"🎒",description:"Collect supplies to help the whole team survive.",ability:"HARVEST: once per turn, choose a regional material, ammunition, or item and collect 2 bundles for 1 action. A Tool adds 1 bundle. Open ABILITY to choose."},
   Builder:{icon:"🔧",description:"Help the team collect materials and prepare for escape.",ability:"DOUBLE CRAFT: once per turn, spend 1 action to craft up to two items. Pay the material cost of each item. You can choose the same recipe twice."},
   Medic:{icon:"➕",description:"Watch your team's Hearts and help hurt survivors.",ability:"CARE: once per turn, spend 1 action to restore up to 3 Hearts to yourself or one teammate in your region, up to 5 Hearts. Can rescue a knocked-out teammate."}
 };
@@ -374,7 +375,7 @@ const SAVE_KEY="lost-helicopter-save-v1";
 let saveEnabled=false,saveQueued=false,saveStatus="Progress saves on this browser after you start.";
 let pendingExplore=null,pendingCraft=false,outcome=null;
 function snapshotGame(){
- return {schema:1,party,gear,battle,encounterStamp,battlesWon,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
+ return {schema:1,party,gear,battle,encounterStamp,battlesWon,journey,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
 }
 function validSave(s){
  const count=(n,max=100000)=>Number.isInteger(n)&&n>=0&&n<=max;
@@ -502,7 +503,7 @@ function renderRoster(){
 }
 function showPlayer(i){
   const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
-  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p><b>Played by '+controllerHTML(i)+'</b></p><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+weaponCard(i)+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits stay in the pack until you use them.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p><b>Played by '+controllerHTML(i)+'</b></p><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+weaponCard(i)+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p>'+ownedItemCards(false)+'<p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits stay in the pack until you use them.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
   $("closePlayer").addEventListener("click",closeModal);
 }
 
@@ -579,10 +580,10 @@ function revealExploration(){
  const index=pendingExplore,[name,effect]=exploration[index],info=discoveryPresentation[index],loc=players[active].loc;
  const pos=artPositions[loc],symbol=info[0]==="Kitty"?friendArt("Kitty",true):info[0];
  const stars=Array.from({length:8},(_,i)=>'<span class="rewardSparkle" aria-hidden="true" style="--spark-x:'+Math.round(Math.cos(i*Math.PI/4)*115)+'px;--spark-y:'+Math.round(Math.sin(i*Math.PI/4)*95)+'px">✦</span>').join('');
- showModal('<div class="exploreCut"><div class="exploreScene" style="--scene-x:'+pos[0]+'%;--scene-y:'+pos[1]+'%"><img class="terrainDetail" src="assets/island-v015.png" alt="Close-up of the '+loc+' terrain"><div class="terrainShade"></div><div class="terrainCaption">EXPLORING '+loc.toUpperCase()+'</div><div class="rewardPop" aria-hidden="true">'+symbol+'</div>'+stars+'</div><div><h2>'+name+'</h2><p class="discoveryCopy"><b>'+info[1]+'</b></p><p class="discoveryCopy">'+info[2]+'</p><div class="exploreActions"><button class="choice" id="resolveExplore">'+info[3]+'</button><small>Tap when ready. The animation never blocks this button.</small></div></div></div>',false);
+ showModal('<div class="exploreCut"><div class="exploreScene" style="--scene-x:'+pos[0]+'%;--scene-y:'+pos[1]+'%"><img class="terrainDetail" src="assets/island-v015.png" alt="Close-up of the '+loc+' terrain"><div class="terrainShade"></div><div class="terrainCaption">EXPLORING '+loc.toUpperCase()+'</div><div class="rewardPop" aria-hidden="true">'+symbol+'</div>'+stars+'</div><div><h2>'+name+'</h2><p class="discoveryCopy"><b>'+info[1]+'</b></p><p class="discoveryCopy">'+info[2]+'</p><div class="exploreActions"><button class="choice" id="resolveExplore">'+info[3]+'</button><small>Also collect a regional supply bundle + 1 Food outside the Centre. Tap when ready.</small></div></div></div>',false);
  $("resolveExplore").addEventListener("click",()=>{
   if(pendingExplore!==index)return;
-  pendingExplore=null;closeModal();effect();render();
+  pendingExplore=null;closeModal();grantExploreSupplies(loc);effect();render();
  });
 }
 
@@ -671,7 +672,7 @@ function render(){
   renderRoster();
   const partText=Object.entries(parts).map(([k,v])=>`${v?"✓":"□"} ${k}`).join(" · ");
   $("mission").innerHTML=teleporter
-    ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Everyone to Centre`
+    ? `<b>FINAL ESCAPE</b><br>${finalRounds} round${finalRounds===1?"":"s"} left · Guardians ${journey.bosses.length}/3 · Everyone to Centre`
     : `<b>Mission:</b> Find Teleporter Parts<br>${partText}<br><small>Supplies: G${res.Gold} W${res.Wood} S${res.String} F${res.Food} I${res.Ice}</small>`;
 
   renderMoveGuide();
@@ -715,7 +716,7 @@ function showIntro(page=0,replay=false){
   const scenes=[
     {title:"The Lost Helicopter Journal",copy:"Your helicopter is down. Ahead lies a strange island: scorching sand, frozen peaks, tangled forest, and a cave full of secrets. Together, four survivors step onto the beach.",foot:"A cooperative island adventure"},
     {title:"Four survivors. One team.",copy:"Choose who will play the Explorer, Hunter, Builder, and Medic. Share the device and pass it when the next player’s turn appears. Each character gets 3 actions and can use their special ability once per turn, even when one person controls several characters.",foot:"Explore · Gather · Craft · Help"},
-    {title:"Find a way home.",copy:"Search for the Power Core, Control Crystal, and Portal Ring. Find friends, gather supplies, and watch out for monsters. With all 3 parts, reach the Centre and build the Teleporter using 2 Gold, 2 Wood, and 1 String.",foot:"Once activated, get everyone to the Centre within 3 rounds, then use PORTAL → ESCAPE TOGETHER."}
+    {title:"Find a way home.",copy:"Search for the Power Core, Control Crystal, and Portal Ring. Find friends, gather supplies, and watch out for monsters. With all 3 parts, reach the Centre and build the Teleporter using 2 Gold, 2 Wood, and 1 String.",foot:"Opening the portal summons the three main villains. Defeat them, get everyone to the Centre within 3 journey rounds, then escape. Battles pause the countdown."}
   ];
   const scene=scenes[page];
   $("overlay").classList.add("introOverlay");
@@ -759,7 +760,7 @@ function handleAction(a){
   const details={
     move:["How to move","You are in <b>"+p.loc+"</b>. Tap CHOOSE DESTINATION, then tap a region marked <b>MOVE</b>. You can only travel to a connected region. The Centre stays locked until all 3 parts are found.","CHOOSE DESTINATION","Costs 1 action only when you move."],
     explore:["Explore "+p.loc,"Discover a surprise: supplies, a friend, a Teleporter part — or a monster! Collect or confirm the discovery card to see what happens.","EXPLORE HERE","Costs 1 action."],
-    gather:["Gather supplies",resource?"In <b>"+p.loc+"</b>, gather <b>"+resource+"</b> for the team. Normal Gather collects 1 material. A Tool adds 1 extra resource and is used up. Use ABILITY for the Hunter’s double gather.":"There are no supplies to gather at the Centre. Move to another region first.","GATHER "+(resource||"SUPPLIES"),resource?"Costs 1 action.":"No action will be spent."],
+    gather:["Gather supplies",resource?"In <b>"+p.loc+"</b>, gather <b>"+resource+"</b> for the team. Gather finds a random local supply bundle: material, ammo, or a useful item. A Tool adds a bundle. The Hunter’s HARVEST ability lets you choose and doubles the bundles.":"There are no supplies to gather at the Centre. Move to another region first.","GATHER "+(resource||"SUPPLIES"),resource?"Costs 1 action.":"No action will be spent."],
     craft:["Make something useful","Choose a recipe on the next screen. It shows the supplies needed and what the item does. Supplies belong to the whole team.","SEE RECIPES","Costs 1 action only when you successfully craft."],
     ability:[p.role+"'s ability",abilityHelp(),"USE ABILITY","Costs 1 action. Once per turn (every 3 actions). Cancelling before success spends nothing."],
     help:["Help a teammate","Stand in the same region as a hurt teammate. Help restores 1 Heart, or rescues a knocked-out teammate with 2 Hearts. If several need help, the first in player order is helped.","HELP HERE","Costs 1 action only if someone here needs help."],
@@ -804,14 +805,7 @@ function doExplore(){
  discoveries.add(exploration[pendingExplore][0]);
  revealExploration();render();
 }
-function doGather(){
-  if(!spendAction())return;
-  const k=regions[players[active].loc].res;
-  if(!k){actions++;toast("There is no basic resource to gather here.");render();return;}
-  let n=1;
-  if(inventory.Tool>0){inventory.Tool--;n++;toast("Tool used: +1 resource.");}
-  gain(k,n);render();
-}
+function doGather(){gatherRegional();}
 function friend(name){
   const already=friendOwners[name]!==null;
   if(!already)friendOwners[name]=active;
@@ -874,14 +868,7 @@ function useAbility(){
     explorerSteps=2;moveMode=true;
     toast("Choose your first connected region. Two moves cost 1 action.");render();return;
   }
-  if(p.role==="Hunter"){
-    const material=regions[p.loc].res;
-    if(!material){toast("No materials here. Move to another region. Ability not used.");return;}
-    if(!spendAbility())return;
-    let amount=2;
-    if(inventory.Tool>0){inventory.Tool--;amount++;}
-    gain(material,amount);render();return;
-  }
+  if(p.role==="Hunter"){showHarvest();return;}
   if(p.role==="Builder"){builderCrafts=0;showCraft(true);return;}
   if(p.role==="Medic"){
     const targets=players.map((target,i)=>({target,i})).filter(x=>x.target.loc===p.loc&&x.target.hp<5);
@@ -920,7 +907,7 @@ function islandPhase(){
 }
 function endTurn(){
   if(gameOver||battle)return;
-  if(teleporter&&everyoneAtPortal()){win();return;}
+  if(teleporter&&everyoneAtPortal()){if(portalCleared())win();else offerPortal();return;}
   if(players.every(p=>p.ko)){lose("The whole team was knocked out.");return;}
   const previousController=party?party.owners[active]:null;
   moveMode=false;
@@ -933,7 +920,7 @@ function endTurn(){
     if(teleporter&&!gameOver){
       finalRounds--;
       if(finalRounds<=0){
-        if(players.every(p=>p.loc==="Centre"&&!p.ko)) win();
+        if(everyoneAtPortal()){if(portalCleared())win();else {finalRounds=1;offerPortal();return;}}
         else lose("The portal closed before everyone reached the Centre.");
       }
     }
@@ -990,7 +977,7 @@ document.addEventListener("keydown",e=>{
 function lose(reason){gameOver=true;outcome="lost";showModal(`<h2>THE ISLAND WINS THIS TIME</h2><p>${reason}</p><button class="choice" id="restart">TRY AGAIN</button>`);$("restart").addEventListener("click",()=>{saveEnabled=false;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();});}
 
 </script>
-<script src="gameplay-v020.js"></script>
+<script src="gameplay-v021.js"></script>
 <script>
 initCombatContent();
 $("turn").addEventListener("click",()=>showPlayer(active));
