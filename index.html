@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>The Lost Helicopter Journal v0.1.9</title>
+<title>The Lost Helicopter Journal v0.1.10</title>
 <style>
 :root{
   --ink:#173247;--paper:#f7e8c3;--paper2:#fff7df;--wood:#76502c;
@@ -247,13 +247,30 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 @media(orientation:landscape) and (max-height:550px){#moveGuide{font-size:10px;padding:3px}.moveChoices{margin-top:2px}.moveChoices button{min-height:32px;padding:3px}.exploreCut{display:grid;grid-template-columns:48% 1fr;gap:12px;align-items:center}.exploreScene{height:230px;margin:0}.discoveryCopy{font-size:14px}.exploreActions{position:static}}
 
 @media(orientation:landscape) and (max-height:550px){#moveGuide{grid-column:1;grid-row:2;position:relative;align-self:end;top:auto;left:auto;right:auto;z-index:6}.moveChoices button{font-size:10px;min-height:40px}}
+
+.playerOwner{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:bold;color:inherit;margin:2px 0}
+.setupCopy{font-size:14px;line-height:1.4}
+.playerCounts{display:flex;gap:6px;justify-content:center;margin:10px 0}
+.playerCounts button{flex:1;min-height:44px;border:2px solid #698271;border-radius:9px;background:#eee3c3;color:#173247;font-weight:bold;cursor:pointer}
+.playerCounts button[aria-pressed="true"]{background:#2d6e5c;color:white;border-color:#1a4539}
+.setupNames{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;margin:12px 0}
+.setupNames label,.roleAssignment label{display:block;font-size:13px;font-weight:bold}
+.setupNames input,.roleAssignment select{width:100%;min-height:44px;border:2px solid #9b895f;border-radius:8px;background:#fffdf3;color:#173247;font:inherit;font-size:16px;padding:7px;margin-top:4px}
+.roleAssignment{display:grid;grid-template-columns:45px 1fr;align-items:center;text-align:left;gap:8px;border-top:1px solid #d8c499;padding:7px 0}
+.roleAssignment img{width:42px;height:58px;object-fit:contain}
+.setupError{font-size:14px;color:#992e24;font-weight:bold}
+.turnHuman{font-size:clamp(24px,7vw,38px);overflow-wrap:anywhere}
+.turnCharacter{font-size:20px;font-weight:bold;margin:7px 0}
+.turnOrder small{display:block;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(orientation:landscape) and (max-height:550px){.playerOwner{font-size:9px;margin:0}.turnHuman{font-size:26px}.turnCharacter{font-size:16px}}
+
 </style>
 </head>
 <body>
 <div id="game">
   <header>
     <h1>THE LOST HELICOPTER JOURNAL</h1>
-    <div class="sub">Digital Prototype v0.1.9 · Cooperative Island Adventure</div>
+    <div class="sub">Digital Prototype v0.1.10 · Cooperative Island Adventure</div>
   </header>
 
   <section class="status">
@@ -332,14 +349,14 @@ const SAVE_KEY="lost-helicopter-save-v1";
 let saveEnabled=false,saveQueued=false,saveStatus="Progress saves on this browser after you start.";
 let pendingExplore=null,pendingCraft=false,outcome=null;
 function snapshotGame(){
- return {schema:1,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
+ return {schema:1,party,players,active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,discoveries:[...discoveries],centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,friendOwners,reduceMotion,pendingExplore,pendingCraft,outcome};
 }
 function validSave(s){
  const count=(n,max=100000)=>Number.isInteger(n)&&n>=0&&n<=max;
  const bool=v=>typeof v==="boolean";
  const counts=(o,keys)=>o&&keys.every(k=>count(o[k]));
  const flags=(o,keys)=>o&&keys.every(k=>bool(o[k]));
- return s&&s.schema===1&&Array.isArray(s.players)&&s.players.length===4
+ return s&&s.schema===1&&(s.party==null||validParty(s.party))&&Array.isArray(s.players)&&s.players.length===4
  &&s.players.every((p,i)=>p&&p.role===roleNames[i]&&Object.hasOwn(regions,p.loc)&&count(p.hp,5)&&bool(p.ko)&&p.ko===(p.hp===0)&&bool(p.abilityUsed))
  &&count(s.active,3)&&count(s.actions,3)&&count(s.round)&&s.round>=1
  &&["moveMode","gameOver","centreUnlocked","teleporter","reduceMotion","pendingCraft"].every(k=>bool(s[k]))
@@ -371,6 +388,7 @@ function loadSave(){
  return null;
 }
 function applySave(s){
+ party=s.party||null;
  players.forEach((p,i)=>Object.assign(p,s.players[i]));
  ({active,actions,round,moveMode,gameOver,explorerSteps,builderCrafts,res,parts,recruited,centreUnlocked,teleporter,finalRounds,monsters,eyeMarks,inventory,reduceMotion,pendingExplore,pendingCraft,outcome}=s);
  Object.assign(friendOwners,s.friendOwners);discoveries=new Set(s.discoveries);
@@ -394,12 +412,57 @@ function confirmNewGame(cancel){
  });
 }
 function showResume(s){
- showModal('<h2>Your island adventure is waiting</h2><p class="guideCopy">Round '+s.round+' · <b>'+s.players[s.active].role+'</b><br>'+s.actions+' actions left · '+s.players[s.active].loc+'</p><p>Continue with the same supplies, friends, and special abilities.</p><button class="choice" id="resumeGame">CONTINUE ADVENTURE</button><button class="choice alt" id="newSavedGame">NEW ADVENTURE</button>',false);
- $("resumeGame").addEventListener("click",()=>{applySave(s);continueSaved();});
+ showModal('<h2>Your island adventure is waiting</h2><p class="guideCopy">Round '+s.round+' · <b>'+(s.party?escapeText(s.party.names[s.party.owners[s.active]])+' — ':'')+s.players[s.active].role+'</b><br>'+s.actions+' actions left · '+s.players[s.active].loc+'</p><p>Continue with the same supplies, friends, and special abilities.</p><button class="choice" id="resumeGame">CONTINUE ADVENTURE</button><button class="choice alt" id="newSavedGame">NEW ADVENTURE</button>',false);
+ $("resumeGame").addEventListener("click",()=>{applySave(s);if(party)continueSaved();else showPartySetup("resume");});
  $("newSavedGame").addEventListener("click",()=>confirmNewGame(()=>showResume(s)));
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")writeSave();});
 window.addEventListener("pagehide",writeSave);
+
+
+let party=null;
+function escapeText(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+function cleanName(value){return String(value).replace(/[\u0000-\u001f\u007f]/g,"").trim().slice(0,24);}
+function validParty(value){
+ return value&&Array.isArray(value.names)&&value.names.length>=1&&value.names.length<=4
+ &&value.names.every(n=>typeof n==="string"&&n===cleanName(n)&&n.length>0)
+ &&new Set(value.names.map(n=>n.toLocaleLowerCase())).size===value.names.length
+ &&Array.isArray(value.owners)&&value.owners.length===4
+ &&value.owners.every(i=>Number.isInteger(i)&&i>=0&&i<value.names.length)
+ &&value.names.every((_,i)=>value.owners.includes(i));
+}
+function controller(i){return party?party.names[party.owners[i]]:"Player";}
+function controllerHTML(i){return escapeText(controller(i));}
+function showPartySetup(mode="new"){
+ let draft=party?{names:[...party.names],owners:[...party.owners]}:{names:["Player 1"],owners:[0,0,0,0]};
+ function draw(){
+  showModal('<h2>Who is playing?</h2><p class="setupCopy">Play with <b>1–4 people on this device</b>. All four characters take a turn. One person can control several characters.</p><div class="playerCounts" aria-label="Number of people">'+[1,2,3,4].map(n=>'<button type="button" data-count="'+n+'" aria-pressed="'+(n===draft.names.length)+'">'+n+(n===1?' player':' players')+'</button>').join('')+'</div><form id="partyForm"><div class="setupNames">'+draft.names.map((name,i)=>'<label for="human'+i+'">Player '+(i+1)+' name<input id="human'+i+'" name="human'+i+'" maxlength="24" autocomplete="off" autocapitalize="words" value="'+escapeText(name)+'"></label>').join('')+'</div><p class="setupCopy"><b>Choose who controls each character.</b><br>Everyone needs at least one character.</p>'+roleNames.map((role,i)=>'<div class="roleAssignment">'+portrait(role,'')+'<label for="owner'+i+'">'+role+'<select id="owner'+i+'" name="owner'+i+'">'+draft.names.map((name,j)=>'<option value="'+j+'"'+(draft.owners[i]===j?' selected':'')+'>'+escapeText(name||'Player '+(j+1))+'</option>').join('')+'</select></label></div>').join('')+'<p class="setupError" id="partyError" role="alert"></p><button class="choice" type="submit">'+(mode==="new"?'BEGIN ADVENTURE':'SAVE PLAYERS')+'</button>'+(mode==="edit"?'<button class="choice alt" type="button" id="cancelParty">CANCEL CHANGES</button>':'')+'<p class="setupCopy">Names stay with your saved adventure in this browser. This mode is pass-and-play, not online across separate phones.</p></form>',false);
+  $("modal").querySelectorAll("[data-count]").forEach(button=>button.addEventListener("click",()=>{
+   const n=Number(button.dataset.count);
+   if(n===draft.names.length)return;
+   draft.names=Array.from({length:n},(_,i)=>draft.names[i]||"Player "+(i+1));
+   draft.owners=roleNames.map((_,i)=>i%n);draw();
+  }));
+  draft.names.forEach((_,i)=>$("human"+i).addEventListener("input",()=>{
+   draft.names[i]=$("human"+i).value;
+   roleNames.forEach((_,j)=>$("owner"+j).options[i].textContent=cleanName(draft.names[i])||"Player "+(i+1));
+  }));
+  roleNames.forEach((_,i)=>$("owner"+i).addEventListener("change",()=>{draft.owners[i]=Number($("owner"+i).value);}));
+  $("partyForm").addEventListener("submit",event=>{
+   event.preventDefault();
+   const candidate={names:draft.names.map(cleanName),owners:[...draft.owners]};
+   if(candidate.names.some(n=>!n)){$("partyError").textContent="Enter a name for every player.";return;}
+   if(new Set(candidate.names.map(n=>n.toLocaleLowerCase())).size!==candidate.names.length){$("partyError").textContent="Use different names, or add an initial so everyone is easy to identify.";return;}
+   if(!validParty(candidate)){$("partyError").textContent="Give every player at least one character.";return;}
+   party=candidate;closeModal();render();
+   if(mode==="new")showIntro();
+   else if(mode==="resume")continueSaved();
+   else showJournal();
+  });
+  if(mode==="edit")$("cancelParty").addEventListener("click",showJournal);
+ }
+ draw();
+}
 
 function ownedFriends(i){return Object.keys(friendOwners).filter(name=>friendOwners[name]===i);}
 function friendIcons(i){
@@ -407,12 +470,12 @@ function friendIcons(i){
   return names.length?names.map(name=>'<span role="img" aria-label="'+name+'" title="'+name+'">'+friendArt(name)+'</span>').join(' '):'<span class="noFriends">No friends yet</span>';
 }
 function renderRoster(){
-  $("roster").innerHTML=players.map((p,i)=>'<button type="button" class="playerTile '+(i===active?'current':'')+'" data-player="'+i+'" aria-label="Open '+p.role+' player card">'+portrait(p.role,'rosterPortrait')+'<span class="playerName">'+(i===active?'▶ ':'')+p.role+'</span><span class="playerHealth">'+(p.ko?'Knocked out':'♥ '+p.hp+'/5')+'</span><span class="playerFriends">'+friendIcons(i)+'</span></button>').join('');
+  $("roster").innerHTML=players.map((p,i)=>'<button type="button" class="playerTile '+(i===active?'current':'')+'" data-player="'+i+'" aria-label="Open '+p.role+' player card">'+portrait(p.role,'rosterPortrait')+'<span class="playerName">'+(i===active?'▶ ':'')+p.role+'</span><span class="playerOwner" title="'+controllerHTML(i)+'">'+controllerHTML(i)+'</span><span class="playerHealth">'+(p.ko?'Knocked out':'♥ '+p.hp+'/5')+'</span><span class="playerFriends">'+friendIcons(i)+'</span></button>').join('');
   $("roster").querySelectorAll("[data-player]").forEach(button=>{button.style.setProperty("--player-colour",playerColours[Number(button.dataset.player)]);button.addEventListener("click",()=>showPlayer(Number(button.dataset.player)));});
 }
 function showPlayer(i){
   const p=players[i], info=roleInfo[p.role], friends=ownedFriends(i);
-  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
+  showModal(portrait(p.role,'heroPortrait')+'<h2>'+p.role+' player card</h2><p><b>Played by '+controllerHTML(i)+'</b></p><p>'+info.description+'</p><div class="cardStats"><div><b>Health</b>♥ '+p.hp+' / 5</div><div><b>Location</b>'+p.loc+'</div><div><b>Status</b>'+(p.ko?'Knocked out — needs rescue':i===active?'Active player':'Waiting for their turn')+'</div><div><b>'+(i===active?'Actions left':'Actions per turn')+'</b>'+(i===active?actions:3)+'</div></div><p><b>Ability:</b> '+info.ability+'</p><p><b>Ability status:</b> '+(i===active?(p.abilityUsed?'Used this turn':'Ready this turn'):'Available on their next turn')+'</p><p><b>Eye marks:</b> '+eyeMarks[i]+'</p><h3>Current friends</h3>'+(friends.length?friends.map(name=>'<section class="friendRow"><h3>'+friendArt(name,true)+' '+name+'</h3><p>'+friendInfo[name].description+'</p><p>Travels with '+p.role+'.</p></section>').join(''):'<p>No friends yet. Try exploring!</p>')+'<p><small>Friends are companions in this prototype; they do not have separate Hearts or usable abilities yet.</small></p><h3>Items available to this player</h3><p>Items and supplies are shared by the whole team.</p><div class="chips"><span class="chip">Tools: '+inventory.Tool+'</span><span class="chip">Armour: '+inventory.Armour+'</span><span class="chip">Healing Kits: '+inventory["Healing Kit"]+'</span></div><p><small>Tools are used on the next Gather. Armour blocks the next monster hit. Healing Kits are used immediately when crafted.</small></p><div class="chips">'+Object.entries(res).map(([name,count])=>'<span class="chip">'+name+': '+count+'</span>').join('')+'</div><button class="choice alt" id="closePlayer">BACK TO ISLAND</button>');
   $("closePlayer").addEventListener("click",closeModal);
 }
 
@@ -534,7 +597,7 @@ function renderBoard(){
     const pawn=$("mapPlayer"+i),pos=artPositions[p.loc];
     pawn.style.left=(pos[0]+(i%2===0?-6:6))+"%";pawn.style.top=(pos[1]+(i<2?10:21))+"%";
     pawn.classList.toggle("active",i===active);pawn.classList.toggle("ko",p.ko);
-    pawn.setAttribute("aria-label",p.role+" in "+p.loc+" — open player card");pawn.title=p.role+" · "+p.loc+" · ♥"+p.hp;
+    pawn.setAttribute("aria-label",p.role+" in "+p.loc+" — "+controller(i)+" — open player card");pawn.title=p.role+" · "+controller(i)+" · "+p.loc+" · ♥"+p.hp;
   });
   Object.entries(monsters).forEach(([key,loc],i)=>{
     const pin=$("monster"+key);pin.hidden=!loc;
@@ -576,7 +639,7 @@ function render(){
   queueSave();
   queueTurnAdvance();
   if(allParts()&&!centreUnlocked){centreUnlocked=true;discoveries.add("Centre Unlocked");toast("All Teleporter Parts found! The Centre is unlocked.");}
-  $("turn").innerHTML=`Round ${round} · ${players[active].role} · ${actions} action${actions===1?"":"s"}`;
+  $("turn").textContent=`Round ${round} · ${party?controller(active)+" — ":""}${players[active].role} · ${actions} action${actions===1?"":"s"}`;
   $("teamline").textContent="♥ "+players[active].hp+"/5 · "+players[active].loc+" · Tap a player below for their card";
   renderRoster();
   const partText=Object.entries(parts).map(([k,v])=>`${v?"✓":"□"} ${k}`).join(" · ");
@@ -623,7 +686,7 @@ function abilityHelp(){return roleInfo[players[active].role].ability;}
 function showIntro(page=0,replay=false){
   const scenes=[
     {title:"The Lost Helicopter Journal",copy:"Your helicopter is down. Ahead lies a strange island: scorching sand, frozen peaks, tangled forest, and a cave full of secrets. Together, four survivors step onto the beach.",foot:"A cooperative island adventure"},
-    {title:"Four survivors. One team.",copy:"Choose who will play the Explorer, Hunter, Builder, and Medic. Share the device and pass it when the next player’s turn appears. Each player gets 3 actions and can use their special ability once per turn.",foot:"Explore · Gather · Craft · Help"},
+    {title:"Four survivors. One team.",copy:"Choose who will play the Explorer, Hunter, Builder, and Medic. Share the device and pass it when the next player’s turn appears. Each character gets 3 actions and can use their special ability once per turn, even when one person controls several characters.",foot:"Explore · Gather · Craft · Help"},
     {title:"Find a way home.",copy:"Search for the Power Core, Control Crystal, and Portal Ring. Find friends, gather supplies, and watch out for monsters. With all 3 parts, reach the Centre and build the Teleporter using 2 Gold, 2 Wood, and 1 String.",foot:"Once activated, get everyone to the Centre before the 3-round countdown ends."}
   ];
   const scene=scenes[page];
@@ -646,10 +709,12 @@ function queueTurnAdvance(){
   endTurn();
  });
 }
-function showTurn(){
+
+function showTurn(previousController=null){
  if(gameOver)return;
- const p=players[active];
- showModal('<div class="turnArrival">'+portrait(p.role,'heroPortrait')+'</div><div class="turnBadge">Pass the device · Round '+round+'</div><h2 class="turnRole">'+p.role+"'s turn!</h2>"+'<div class="turnOrder">'+players.map((player,i)=>'<span class="'+(i===active?'now':'')+'">'+player.role+'</span>').join('')+'</div><p class="guideCopy"><b>'+p.hp+' Hearts · '+p.loc+'</b><br>You have <b>'+actions+' actions</b>.</p><p class="turnInstructions">'+abilityHelp()+'</p><p class="turnInstructions">'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'After your 3 actions, play passes to the next survivor automatically.')+'</p><div class="turnStart"><button class="choice" id="startTurn">START '+p.role.toUpperCase()+"'S TURN"+'</button></div>',false);
+ const p=players[active],name=controllerHTML(active);
+ const handoff=party&&party.names.length===1?"Solo adventure":party&&previousController===party.owners[active]?"Keep the device":"Pass the device";
+ showModal('<div class="turnArrival">'+portrait(p.role,'heroPortrait')+'</div><div class="turnBadge">'+handoff+' · Round '+round+'</div><h2 class="turnRole turnHuman">'+name+"'s turn!</h2>"+'<p class="turnCharacter">Playing the '+p.role+'</p><div class="turnOrder">'+players.map((player,i)=>'<span class="'+(i===active?'now':'')+'">'+player.role+'<small>'+controllerHTML(i)+'</small></span>').join('')+'</div><p class="guideCopy"><b>'+p.hp+' Hearts · '+p.loc+'</b><br>This character has <b>'+actions+' actions</b>.</p><p class="turnInstructions">'+abilityHelp()+'</p><p class="turnInstructions">'+(teleporter?'Final escape: '+finalRounds+' rounds left. Get everyone to the Centre!':'After 3 actions, the next character takes their turn.')+'</p><div class="turnStart"><button class="choice" id="startTurn">START '+p.role.toUpperCase()+"'S TURN"+'</button></div>',false);
  $("modal").style.setProperty("--turn-colour",playerColours[active]);
  $("startTurn").addEventListener("click",()=>{closeModal();render();});
 }
@@ -663,7 +728,7 @@ function handleAction(a){
   const p=players[active], resource=regions[p.loc].res;
   const details={
     move:["How to move","You are in <b>"+p.loc+"</b>. Tap CHOOSE DESTINATION, then tap a region marked <b>MOVE</b>. You can only travel to a connected region. The Centre stays locked until all 3 parts are found.","CHOOSE DESTINATION","Costs 1 action only when you move."],
-    explore:["Explore "+p.loc,"Discover a surprise: supplies, a friend, a Teleporter part — or a monster! Tap RESOLVE on the discovery card to see what happens.","EXPLORE HERE","Costs 1 action."],
+    explore:["Explore "+p.loc,"Discover a surprise: supplies, a friend, a Teleporter part — or a monster! Collect or confirm the discovery card to see what happens.","EXPLORE HERE","Costs 1 action."],
     gather:["Gather supplies",resource?"In <b>"+p.loc+"</b>, gather <b>"+resource+"</b> for the team. Normal Gather collects 1 material. A Tool adds 1 extra resource and is used up. Use ABILITY for the Hunter’s double gather.":"There are no supplies to gather at the Centre. Move to another region first.","GATHER "+(resource||"SUPPLIES"),resource?"Costs 1 action.":"No action will be spent."],
     craft:["Make something useful","Choose a recipe on the next screen. It shows the supplies needed and what the item does. Supplies belong to the whole team.","SEE RECIPES","Costs 1 action only when you successfully craft."],
     ability:[p.role+"'s ability",abilityHelp(),"USE ABILITY","Costs 1 action. Once per turn (every 3 actions). Cancelling before success spends nothing."],
@@ -851,6 +916,7 @@ function islandPhase(){
 }
 function endTurn(){
   if(gameOver)return;
+  const previousController=party?party.owners[active]:null;
   moveMode=false;
   active++;
   while(active<players.length&&players[active].ko) active++;
@@ -872,18 +938,19 @@ function endTurn(){
     if(next<0){lose("The whole team was Knocked Out.");return;}
     active=next;
   }
-  actions=3;players[active].abilityUsed=false;explorerSteps=0;builderCrafts=0;render();showTurn();
+  actions=3;players[active].abilityUsed=false;explorerSteps=0;builderCrafts=0;render();showTurn(previousController);
 }
 function showJournal(){
   const friendText=Object.entries(recruited).filter(x=>x[1]).map(x=>friendInfo[x[0]].icon+" "+x[0]+" ("+players[friendOwners[x[0]]].role+")").join(", ")||"None yet";
   showModal(`<h2>Adventure Journal</h2>
     <div class="chips">${[...discoveries].map(x=>`<span class="chip">✓ ${x}</span>`).join("")}</div>
     <div class="journalList"><b>Friends:</b> ${friendText}<br><b>Inventory:</b> Tool ${inventory.Tool}, Armour ${inventory.Armour}<br><b>Eye Marks:</b> ${players.map((p,i)=>`${p.role} ${eyeMarks[i]}`).join(" · ")}</div>
-    <p id="saveNote"></p><button class="choice alt" id="newAdventure">START A NEW ADVENTURE</button><button class="choice" id="replayIntro">READ THE OPENING STORY</button><button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
+    <p id="saveNote"></p><button class="choice" id="editParty">PLAYERS &amp; CHARACTER ASSIGNMENTS</button><button class="choice alt" id="newAdventure">START A NEW ADVENTURE</button><button class="choice" id="replayIntro">READ THE OPENING STORY</button><button class="choice alt" id="closeJournal">BACK TO ISLAND</button>`);
   $("closeJournal").addEventListener("click",closeModal);
   $("replayIntro").addEventListener("click",()=>showIntro(0,true));
   $("saveNote").textContent=saveStatus;
   $("newAdventure").addEventListener("click",()=>confirmNewGame(showJournal));
+  $("editParty").addEventListener("click",()=>showPartySetup("edit"));
 }
 
 function showModal(html,dismissible=true){
@@ -906,7 +973,7 @@ document.addEventListener("keydown",e=>{
   if(!$("overlay").classList.contains("open"))return;
   if(e.key==="Escape"&&modalDismissible){e.preventDefault();closeModal();}
   if(e.key==="Tab"){
-    const buttons=[...$("modal").querySelectorAll("button:not(:disabled)")];
+    const buttons=[...$("modal").querySelectorAll("button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)")];
     if(!buttons.length){e.preventDefault();return;}
     const first=buttons[0],last=buttons[buttons.length-1];
     if(e.shiftKey&&(document.activeElement===first||document.activeElement===$("modal"))){e.preventDefault();last.focus();}
@@ -924,7 +991,7 @@ new ResizeObserver(fitBoard).observe($("mapWrap"));
 $("motionToggle").addEventListener("click",()=>{reduceMotion=!reduceMotion;clearTimeout(travelTimer);travelBusy=false;render();});
 render();
 const savedAdventure=loadSave();
-if(savedAdventure)showResume(savedAdventure);else showIntro();
+if(savedAdventure)showResume(savedAdventure);else showPartySetup();
 </script>
 </body>
 </html>
