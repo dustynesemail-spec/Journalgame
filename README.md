@@ -1,8 +1,19 @@
-# The Lost Helicopter Journal — v0.1.7
+# The Lost Helicopter Journal — v0.1.9
 
 [Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.1.7)
 
 A cooperative island adventure for four players sharing one phone, tablet, or computer.
+
+## Island circuit and exploration
+The outer route is Beach ↔ Forest ↔ Cave ↔ Ice ↔ Desert ↔ Beach. Both directions work; the Centre remains locked until all parts are found. Visible trails and large destination buttons show legal moves.
+
+Exploration zooms into the current terrain and springs the discovery into view. Collect when ready; animation never blocks input. Pending discoveries survive reloads without duplicate rewards.
+
+## Turn-flow fix
+- After three actions, the game automatically passes to the next player.
+- Pending discoveries, Explorer second moves, and Builder second crafts finish first.
+- Animated player handoffs show the turn order, with an always-accessible Start button.
+- Existing saves with zero actions continue into the next turn.
 
 ## This release
 - Gentle clouds, waves, and snow bring the island to life.
