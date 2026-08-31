@@ -246,6 +246,7 @@ header .sub{font-size:11px;font-weight:bold;margin-top:2px}
 @media(prefers-reduced-motion:reduce){.terrainDetail{animation:none;transform:translate(calc(0% - var(--scene-x)),calc(0% - var(--scene-y))) scale(2.5)}.rewardPop{animation:none;transform:translate(-50%,-50%)}.rewardSparkle{display:none}}
 @media(orientation:landscape) and (max-height:550px){#moveGuide{font-size:10px;padding:3px}.moveChoices{margin-top:2px}.moveChoices button{min-height:32px;padding:3px}.exploreCut{display:grid;grid-template-columns:48% 1fr;gap:12px;align-items:center}.exploreScene{height:230px;margin:0}.discoveryCopy{font-size:14px}.exploreActions{position:static}}
 
+@media(orientation:landscape) and (max-height:550px){#moveGuide{grid-column:1;grid-row:2;position:relative;align-self:end;top:auto;left:auto;right:auto;z-index:6}.moveChoices button{font-size:10px;min-height:40px}}
 </style>
 </head>
 <body>
