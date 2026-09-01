@@ -1,8 +1,32 @@
-# The Lost Helicopter Journal — v0.2.2
+# The Lost Helicopter Journal — v0.2.3
 
 [Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.2.1-play)
 
 A cooperative adventure for 1–4 named people sharing a phone, tablet, or computer. All four characters participate; this is pass-and-play, not online multiplayer.
+
+## Animated RPG battles
+
+Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
+
+The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
+
+## Animated RPG battles
+
+Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
+
+The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
+
+## Animated RPG battles
+
+Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
+
+The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
+
+## Animated RPG battles
+
+Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
+
+The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
 
 ## Short battles and victory rewards
 
@@ -88,8 +112,8 @@ Choose 1–4 names and assign all four characters. Change assignments in Journal
 
 One adventure saves in the same browser/device. Continue Adventure preserves items, encounters, enemy responses, and guardian progress. Older saves are supported: a main villain in an old journey battle becomes its minion counterpart while keeping combat progress. An already-completed ending stays completed. Clearing browser data removes the save. Friends remain companions without separate health or usable abilities.
 
-Open the Play link in Safari; local HTML previews may not run the game. Reduced-motion controls are available. Serve index.html, gameplay-v022.js, and assets/ together. GitHub Pages publishes main from the repository root; no build process is required. Older versioned scripts may remain for cached pages.
+Open the Play link in Safari; local HTML previews may not run the game. Reduced-motion controls are available. Serve index.html, gameplay-v023.js, and assets/ together. GitHub Pages publishes main from the repository root; no build process is required. Older versioned scripts may remain for cached pages.
 
 ## Verification
 
-Automated checks cover the eight-point cap and save migration, the 55% boundary, four quiet turns followed by a guaranteed encounter, reward choices and duplicate prevention, and the complete portal finale. Browser checks cover victory reward selection and persistence.
+Automated checks cover battle rules, the new RPG scene structure, territory selection, enemy cutscenes, action and response effects, reduced-motion coverage, save migration, rewards, and the complete portal finale. Browser checks exercise the enemy introduction, engagement, hero actions, villain responses, victory, and reward selection.
