@@ -1,26 +1,8 @@
 # The Lost Helicopter Journal — v0.2.3
 
-[Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.2.1-play)
+[Play the game](https://dustynesemail-spec.github.io/Journalgame/?v=0.2.3-ready)
 
 A cooperative adventure for 1–4 named people sharing a phone, tablet, or computer. All four characters participate; this is pass-and-play, not online multiplayer.
-
-## Animated RPG battles
-
-Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
-
-The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
-
-## Animated RPG battles
-
-Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
-
-The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
-
-## Animated RPG battles
-
-Every encounter now begins with a territory-specific animated cutscene introducing the enemy, its master or guardian role, story, and unique skill. Select **Engage** to enter an RPG-style third-person battlefield: the four survivors face the villain over a close view of the current island territory. The scene shows the current actor, Hearts, Guard, Weakness, villain skill points, intended target, projectiles, strikes, counterattacks, damage, healing effects, and victory. Enemy-response and reward rules are unchanged.
-
-The stage reuses cached island and character artwork and CSS transforms; it adds no image downloads, animation library, canvas loop, or continuous JavaScript timer. Only one set of survivor portraits is rendered in battle. Scene painting is contained, and decorative map animation pauses while a modal is open. Motion: reduced and the device reduced-motion preference stop all new battle animation while keeping every control and status readable.
 
 ## Animated RPG battles
 
